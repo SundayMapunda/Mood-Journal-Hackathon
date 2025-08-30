@@ -1,0 +1,7 @@
+{% extends "base.html" %} 
+
+{% block content %}
+<h2>Welcome to Mood Journal</h2>
+<p>Track your emotions and understand your mood trends.</p>
+<a href="{{ url_for('auth.register') }}">Get Started</a>
+{% endblock %}
