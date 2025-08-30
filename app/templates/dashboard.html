@@ -1,7 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Your Dashboard</h2>
-<p>This is where your mood chart and journal entries will appear.</p>
-<!-- We will add the journal form and chart here later -->
+<h2>Your Mood Journal</h2>
+
+<!-- Journal Entry Form -->
+<div style="margin-bottom: 2rem; padding: 1rem; border: 1px solid #ccc; border-radius: 5px;">
+    <h3>New Journal Entry</h3>
+    <form method="POST" action="{{ url_for('main.dashboard') }}">
+        <div>
+            <label for="content">How are you feeling today?</label>
+            <textarea id="content" name="content" rows="5" required 
+                      style="width: 100%; padding: 0.5rem; margin: 0.5rem 0;"></textarea>
+        </div>
+        <div>
+            <label for="tags">Tags (comma-separated, e.g., work, family, health):</label>
+            <input type="text" id="tags" name="tags" 
+                   style="width: 100%; padding: 0.5rem; margin: 0.5rem 0;">
+        </div>
+        <button type="submit" style="padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 3px;">
+            Save Entry & Analyze Mood
+        </button>
+    </form>
+</div>
+
+<!-- Recent Entries -->
+<div>
+    <h3>Recent Entries</h3>
+    {% if entries %}
+        {% for entry in entries %}
+            <div style="border: 1px solid #eee; padding: 1rem; margin: 1rem 0; border-radius: 5px;">
+                <p><strong>{{ entry.date_created.strftime('%Y-%m-%d %H:%M') }}</strong></p>
+                <p>{{ entry.content }}</p>
+                {% if entry.tags %}
+                    <p>Tags: 
+                        {% for tag in entry.tags %}
+                            <span style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 3px; margin: 0 0.2rem;">
+                                {{ tag.name }}
+                            </span>
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No journal entries yet. Write your first entry above!</p>
+    {% endif %}
+</div>
 {% endblock %}

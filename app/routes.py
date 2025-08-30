@@ -1,7 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user 
 from app import db, bcrypt
-from app.models import User
+from app.models import User, Entry, EmotionScore, Tag
+from app.utils import analyze_sentiment  # Import the utility function
+import json
+from datetime import datetime
 
 # Create a Blueprint for authentication routes.
 auth_routes = Blueprint('auth', __name__)
@@ -98,10 +101,72 @@ def index():
     return render_template('index.html')
 
 # Route for the dashboard (will be protected later)
-@main_routes.route('/dashboard')
+@main_routes.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
-    return render_template('dashboard.html')
+    if request.method == 'POST':
+        # Get form data
+        content = request.form.get('content')
+        tags_input = request.form.get('tags', '')
+        
+        if not content:
+            flash('Journal content cannot be empty.', 'error')
+            return render_template('dashboard.html')
+        
+        # Create new journal entry
+        try:
+            new_entry = Entry(content=content, author=current_user)
+            
+            # Process tags
+            if tags_input:
+                tag_names = [tag.strip().lower() for tag in tags_input.split(',')]
+                for tag_name in tag_names:
+                    if tag_name:  # Skip empty tags
+                        # Get or create the tag
+                        tag = Tag.query.filter_by(name=tag_name).first()
+                        if not tag:
+                            tag = Tag(name=tag_name)
+                            db.session.add(tag)
+                        new_entry.tags.append(tag)
+            
+            db.session.add(new_entry)
+            db.session.flush()  # Flush to get the entry ID without committing
+            
+            # Analyze sentiment using Hugging Face API
+            emotion_scores = analyze_sentiment(content)
+            
+            if emotion_scores:
+                # Create emotion score record
+                emotion_score = EmotionScore(
+                    joy=emotion_scores.get('joy', 0.0),
+                    sadness=emotion_scores.get('sadness', 0.0),
+                    anger=emotion_scores.get('anger', 0.0),
+                    fear=emotion_scores.get('fear', 0.0),
+                    surprise=emotion_scores.get('surprise', 0.0),
+                    entry_id=new_entry.id
+                )
+                db.session.add(emotion_score)
+                flash('Journal entry saved and analyzed successfully!', 'success')
+            else:
+                # Create default emotion scores if analysis fails
+                emotion_score = EmotionScore(entry_id=new_entry.id)
+                db.session.add(emotion_score)
+                flash('Journal entry saved, but sentiment analysis failed.', 'warning')
+            
+            db.session.commit()
+            return redirect(url_for('main.dashboard'))
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error saving journal entry: {e}")
+            flash('An error occurred while saving your entry. Please try again.', 'error')
+    
+    # For GET requests, show the dashboard with recent entries
+    recent_entries = Entry.query.filter_by(user_id=current_user.id)\
+                              .order_by(Entry.date_created.desc())\
+                              .limit(5).all()
+    
+    return render_template('dashboard.html', entries=recent_entries)
 
 # Custom error handler for 401 errors...redundancy a function was created in __init__.py
 # @main_routes.app_errorhandler(401)
