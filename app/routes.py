@@ -165,8 +165,44 @@ def dashboard():
     recent_entries = Entry.query.filter_by(user_id=current_user.id)\
                               .order_by(Entry.date_created.desc())\
                               .limit(5).all()
+
+    # Get data for the chart - last 7 days of emotion scores
+    import datetime
+    seven_days_ago = datetime.datetime.utcnow() - datetime.timedelta(days=7)
     
-    return render_template('dashboard.html', entries=recent_entries)
+    chart_data = Entry.query\
+        .join(EmotionScore)\
+        .filter(Entry.user_id == current_user.id,
+               Entry.date_created >= seven_days_ago)\
+        .order_by(Entry.date_created.asc())\
+        .all()
+    
+    # Prepare data for Chart.js
+    dates = []
+    joy_scores = []
+    sadness_scores = []
+    anger_scores = []
+    fear_scores = []
+    surprise_scores = []
+    
+    for entry in chart_data:
+        dates.append(entry.date_created.strftime('%Y-%m-%d'))
+        if entry.emotion_score:  # Check if emotion_score exists
+            joy_scores.append(round(entry.emotion_score.joy * 100, 1))
+            sadness_scores.append(round(entry.emotion_score.sadness * 100, 1))
+            anger_scores.append(round(entry.emotion_score.anger * 100, 1))
+            fear_scores.append(round(entry.emotion_score.fear * 100, 1))
+            surprise_scores.append(round(entry.emotion_score.surprise * 100, 1))
+    
+    return render_template('dashboard.html', 
+                         entries=recent_entries,
+                         dates=dates,
+                         joy_scores=joy_scores,
+                         sadness_scores=sadness_scores,
+                         anger_scores=anger_scores,
+                         fear_scores=fear_scores,
+                         surprise_scores=surprise_scores)
+    
 
 # Custom error handler for 401 errors...redundancy a function was created in __init__.py
 # @main_routes.app_errorhandler(401)

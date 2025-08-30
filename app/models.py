@@ -52,6 +52,9 @@ class Entry(db.Model):
     # This sets up the many-to-many relationship with the Tag model via the association table.
     tags = db.relationship('Tag', secondary=entry_tag, backref=db.backref('entries', lazy='dynamic'))
     
+    # Add one-to-one relationship with EmotionScore
+    emotion_score = db.relationship('EmotionScore', backref='entry', uselist=False, cascade='all, delete-orphan')
+
     # How the object is printed for debugging
     def __repr__(self):
         return f'<Entry {self.id}>'
