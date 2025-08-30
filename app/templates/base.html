@@ -36,13 +36,28 @@
             display: flex;
             gap: 1rem;
         }
-        .chart-container {
-            margin: 2rem 0;
-            padding: 1rem;
-            border: 1px solid #eee;
-            border-radius: 5px;
-            background: white;
-        }
+        .charts-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+    
+    .chart-container {
+        flex: 1;
+        min-width: 300px;
+        margin: 1rem 0;
+        padding: 1.5rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .chart-container h3 {
+        margin-top: 0;
+        color: #333;
+    }
     </style>
 </head>
 <body>

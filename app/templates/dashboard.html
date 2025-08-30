@@ -3,11 +3,25 @@
 {% block content %}
 <h2>Your Mood Journal</h2>
 
-<!-- Mood Trends Chart -->
-{% if dates %}
-<div class="chart-container">
-    <h3>Your Mood Trends (Last 7 Days)</h3>
-    <canvas id="moodChart" width="400" height="200"></canvas>
+<!-- Charts Row -->
+{% if dates or emotion_distribution %}
+<div class="charts-row">
+    <!-- Mood Trends Chart -->
+    {% if dates %}
+    <div class="chart-container">
+        <h3>Your Mood Trends (Last 7 Days)</h3>
+        <canvas id="moodChart" width="400" height="200"></canvas>
+    </div>
+    {% endif %}
+
+    <!-- Emotion Distribution Pie Chart -->
+    {% if emotion_distribution %}
+    <div class="chart-container">
+        <h3>Overall Emotion Distribution</h3>
+        <p>Based on {{ entry_count }} journal entries</p>
+        <canvas id="emotionPieChart" width="400" height="400"></canvas>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
@@ -134,4 +148,59 @@
     });
 </script>
 {% endif %}
+
+<!-- NEW: Pie Chart Script -->
+{% if emotion_distribution %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const pieCtx = document.getElementById('emotionPieChart').getContext('2d');
+        const emotionPieChart = new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Joy', 'Sadness', 'Anger', 'Fear', 'Surprise'],
+                datasets: [{
+                    data: [
+                        {{ emotion_distribution.get('joy', 0) }},
+                        {{ emotion_distribution.get('sadness', 0) }},
+                        {{ emotion_distribution.get('anger', 0) }},
+                        {{ emotion_distribution.get('fear', 0) }},
+                        {{ emotion_distribution.get('surprise', 0) }}
+                    ],
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.8)',    // Joy - Teal
+                        'rgba(54, 162, 235, 0.8)',    // Sadness - Blue
+                        'rgba(255, 99, 132, 0.8)',    // Anger - Red
+                        'rgba(255, 159, 64, 0.8)',    // Fear - Orange
+                        'rgba(153, 102, 255, 0.8)'    // Surprise - Purple
+                    ],
+                    borderColor: [
+                        'rgb(75, 192, 192)',
+                        'rgb(54, 162, 235)',
+                        'rgb(255, 99, 132)',
+                        'rgb(255, 159, 64)',
+                        'rgb(153, 102, 255)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+
 {% endblock %}

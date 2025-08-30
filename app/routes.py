@@ -166,7 +166,7 @@ def dashboard():
                               .order_by(Entry.date_created.desc())\
                               .limit(5).all()
 
-    # Get data for the chart - last 7 days of emotion scores
+    # Get data for the line chart - last 7 days of emotion scores
     import datetime
     seven_days_ago = datetime.datetime.utcnow() - datetime.timedelta(days=7)
     
@@ -194,6 +194,36 @@ def dashboard():
             fear_scores.append(round(entry.emotion_score.fear * 100, 1))
             surprise_scores.append(round(entry.emotion_score.surprise * 100, 1))
     
+    # NEW: Calculate emotion distribution for pie chart
+    all_entries = Entry.query\
+        .options(db.joinedload(Entry.emotion_score))\
+        .filter(Entry.user_id == current_user.id)\
+        .all()
+    
+    emotion_totals = {
+        'joy': 0,
+        'sadness': 0,
+        'anger': 0,
+        'fear': 0,
+        'surprise': 0
+    }
+    
+    entry_count = 0
+    for entry in all_entries:
+        if entry.emotion_score:
+            entry_count += 1
+            emotion_totals['joy'] += entry.emotion_score.joy
+            emotion_totals['sadness'] += entry.emotion_score.sadness
+            emotion_totals['anger'] += entry.emotion_score.anger
+            emotion_totals['fear'] += entry.emotion_score.fear
+            emotion_totals['surprise'] += entry.emotion_score.surprise
+    
+    # Calculate average percentages
+    emotion_distribution = {}
+    if entry_count > 0:
+        for emotion, total in emotion_totals.items():
+            emotion_distribution[emotion] = round((total / entry_count) * 100, 1)
+    
     return render_template('dashboard.html', 
                          entries=recent_entries,
                          dates=dates,
@@ -201,7 +231,9 @@ def dashboard():
                          sadness_scores=sadness_scores,
                          anger_scores=anger_scores,
                          fear_scores=fear_scores,
-                         surprise_scores=surprise_scores)
+                         surprise_scores=surprise_scores,
+                         emotion_distribution=emotion_distribution,  # NEW
+                         entry_count=entry_count)  # NEW
     
 
 # Custom error handler for 401 errors...redundancy a function was created in __init__.py
