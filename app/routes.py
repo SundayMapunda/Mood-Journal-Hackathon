@@ -4,7 +4,7 @@ from app import db, bcrypt
 from app.models import User, Entry, EmotionScore, Tag
 from app.utils import analyze_sentiment  # Import the utility function
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Create a Blueprint for authentication routes.
 auth_routes = Blueprint('auth', __name__)
@@ -224,6 +224,93 @@ def dashboard():
         for emotion, total in emotion_totals.items():
             emotion_distribution[emotion] = round((total / entry_count) * 100, 1)
     
+    # NEW: Weekly trend analysis (current week vs previous week)
+    trend_analysis = {}
+    
+    if entry_count >= 2:  # Only calculate trends if we have enough data
+        from datetime import datetime, timedelta
+        
+        # Get current week dates (Monday to Sunday)
+        today = datetime.utcnow().date()
+        current_week_start = today - timedelta(days=today.weekday())  # Monday
+        current_week_end = current_week_start + timedelta(days=6)     # Sunday
+        
+        # Get previous week dates
+        previous_week_start = current_week_start - timedelta(days=7)
+        previous_week_end = current_week_start - timedelta(days=1)
+        
+        # Convert to datetime for database comparison
+        current_week_start_dt = datetime.combine(current_week_start, datetime.min.time())
+        current_week_end_dt = datetime.combine(current_week_end, datetime.max.time())
+        previous_week_start_dt = datetime.combine(previous_week_start, datetime.min.time())
+        previous_week_end_dt = datetime.combine(previous_week_end, datetime.max.time())
+        
+        # Current week entries
+        current_week_entries = Entry.query\
+            .options(db.joinedload(Entry.emotion_score))\
+            .filter(Entry.user_id == current_user.id,
+                   Entry.date_created >= current_week_start_dt,
+                   Entry.date_created <= current_week_end_dt)\
+            .all()
+        
+        # Previous week entries
+        previous_week_entries = Entry.query\
+            .options(db.joinedload(Entry.emotion_score))\
+            .filter(Entry.user_id == current_user.id,
+                   Entry.date_created >= previous_week_start_dt,
+                   Entry.date_created <= previous_week_end_dt)\
+            .all()
+        
+        # Calculate averages for both weeks
+        def calculate_week_average(entries):
+            totals = {emotion: 0 for emotion in emotion_totals.keys()}
+            count = 0
+            for entry in entries:
+                if entry.emotion_score:
+                    count += 1
+                    totals['joy'] += entry.emotion_score.joy
+                    totals['sadness'] += entry.emotion_score.sadness
+                    totals['anger'] += entry.emotion_score.anger
+                    totals['fear'] += entry.emotion_score.fear
+                    totals['surprise'] += entry.emotion_score.surprise
+            
+            averages = {}
+            if count > 0:
+                for emotion, total in totals.items():
+                    averages[emotion] = (total / count) * 100
+            return averages, count
+        
+        current_avg, current_count = calculate_week_average(current_week_entries)
+        previous_avg, previous_count = calculate_week_average(previous_week_entries)
+        
+        # Calculate trends (percentage change)
+        trend_analysis = {}
+        for emotion in emotion_totals.keys():
+            current_val = current_avg.get(emotion, 0)
+            previous_val = previous_avg.get(emotion, 0)
+            
+            if previous_val > 0 or current_val > 0:  # If we have any data
+                change = current_val - previous_val  # Simple difference in percentage points
+                
+                trend_analysis[emotion] = {
+                    'change': round(change, 1),
+                    'current': round(current_val, 1),
+                    'previous': round(previous_val, 1),
+                    'direction': 'up' if change > 2 else 'down' if change < -2 else 'stable',
+                    'current_count': current_count,
+                    'previous_count': previous_count
+                }
+            elif current_avg.get(emotion, 0) > 0:
+                # Only current week data available
+                trend_analysis[emotion] = {
+                    'change': 0,
+                    'current': round(current_avg[emotion], 1),
+                    'previous': round(previous_val, 1),
+                    'direction': 'neutral',
+                    'current_count': current_count,
+                    'previous_count': previous_count
+                }
+
     return render_template('dashboard.html', 
                          entries=recent_entries,
                          dates=dates,
@@ -233,8 +320,106 @@ def dashboard():
                          fear_scores=fear_scores,
                          surprise_scores=surprise_scores,
                          emotion_distribution=emotion_distribution,  # NEW
-                         entry_count=entry_count)  # NEW
+                         entry_count=entry_count,  # NEW
+                         trend_analysis=trend_analysis,
+                         current_week_start=current_week_start,  # NEW
+                         current_week_end=current_week_end)      # NEW
+
+# Route to view a single entry
+@main_routes.route('/entry/<int:entry_id>')
+@login_required
+def view_entry(entry_id):
+    entry = Entry.query.get_or_404(entry_id)
     
+    # Ensure the user owns this entry
+    if entry.user_id != current_user.id:
+        flash('You can only view your own entries.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    return render_template('view_entry.html', entry=entry)
+
+# Route to edit an entry
+@main_routes.route('/entry/<int:entry_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_entry(entry_id):
+    entry = Entry.query.get_or_404(entry_id)
+    
+    # Ensure the user owns this entry
+    if entry.user_id != current_user.id:
+        flash('You can only edit your own entries.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    if request.method == 'POST':
+        # Get form data
+        content = request.form.get('content')
+        tags_input = request.form.get('tags', '')
+        
+        if not content:
+            flash('Journal content cannot be empty.', 'error')
+            return render_template('edit_entry.html', entry=entry)
+        
+        try:
+            # Update entry content
+            entry.content = content
+            
+            # Clear existing tags and add new ones
+            entry.tags = []
+            if tags_input:
+                tag_names = [tag.strip().lower() for tag in tags_input.split(',')]
+                for tag_name in tag_names:
+                    if tag_name:  # Skip empty tags
+                        tag = Tag.query.filter_by(name=tag_name).first()
+                        if not tag:
+                            tag = Tag(name=tag_name)
+                            db.session.add(tag)
+                        entry.tags.append(tag)
+            
+            # Re-analyze sentiment if content changed significantly
+            if content != entry.content:
+                emotion_scores = analyze_sentiment(content)
+                if emotion_scores and entry.emotion_score:
+                    entry.emotion_score.joy = emotion_scores.get('joy', 0.0)
+                    entry.emotion_score.sadness = emotion_scores.get('sadness', 0.0)
+                    entry.emotion_score.anger = emotion_scores.get('anger', 0.0)
+                    entry.emotion_score.fear = emotion_scores.get('fear', 0.0)
+                    entry.emotion_score.surprise = emotion_scores.get('surprise', 0.0)
+            
+            db.session.commit()
+            flash('Entry updated successfully!', 'success')
+            return redirect(url_for('main.view_entry', entry_id=entry.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error updating entry: {e}")
+            flash('An error occurred while updating your entry. Please try again.', 'error')
+    
+    # For GET requests, pre-fill the form with existing data
+    tags_string = ', '.join([tag.name for tag in entry.tags])
+    return render_template('edit_entry.html', entry=entry, tags_string=tags_string)
+
+# Route to delete an entry
+@main_routes.route('/entry/<int:entry_id>/delete', methods=['POST'])
+@login_required
+def delete_entry(entry_id):
+    entry = Entry.query.get_or_404(entry_id)
+    
+    # Ensure the user owns this entry
+    if entry.user_id != current_user.id:
+        flash('You can only delete your own entries.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    try:
+        # Delete the entry (cascade will handle emotion_score and tags due to relationship)
+        db.session.delete(entry)
+        db.session.commit()
+        flash('Entry deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting entry: {e}")
+        flash('An error occurred while deleting your entry. Please try again.', 'error')
+    
+    return redirect(url_for('main.dashboard'))
+
 
 # Custom error handler for 401 errors...redundancy a function was created in __init__.py
 # @main_routes.app_errorhandler(401)

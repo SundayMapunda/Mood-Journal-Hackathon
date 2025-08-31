@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>Journal Entry</h2>
+        <a href="{{ url_for('main.edit_entry', entry_id=entry.id) }}" 
+           style="padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">
+            Edit Entry
+        </a>
+    </div>
+    
+    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <p style="color: #666; margin-bottom: 1.5rem;">
+            {{ entry.date_created.strftime('%B %d, %Y at %H:%M') }}
+        </p>
+        
+        <div style="margin-bottom: 2rem; line-height: 1.6;">
+            {{ entry.content | replace('\n', '<br>') | safe }}
+        </div>
+        
+        {% if entry.tags %}
+        <div style="margin-bottom: 2rem;">
+            <strong>Tags:</strong>
+            {% for tag in entry.tags %}
+                <span style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 3px; margin: 0 0.2rem;">
+                    {{ tag.name }}
+                </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if entry.emotion_score %}
+        <div style="padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+            <h4>Emotion Analysis:</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5rem; color: #28a745;">{{ "%.1f"|format(entry.emotion_score.joy * 100) }}%</div>
+                    <div style="font-size: 0.9rem; color: #666;">Joy</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5rem; color: #007bff;">{{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%</div>
+                    <div style="font-size: 0.9rem; color: #666;">Sadness</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5rem; color: #dc3545;">{{ "%.1f"|format(entry.emotion_score.anger * 100) }}%</div>
+                    <div style="font-size: 0.9rem; color: #666;">Anger</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5rem; color: #ffc107;">{{ "%.1f"|format(entry.emotion_score.fear * 100) }}%</div>
+                    <div style="font-size: 0.9rem; color: #666;">Fear</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5rem; color: #6f42c1;">{{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%</div>
+                    <div style="font-size: 0.9rem; color: #666;">Surprise</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div style="margin-top: 2rem;">
+        <a href="{{ url_for('main.dashboard') }}" style="color: #007bff; text-decoration: none;">
+            ← Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <h2>Edit Journal Entry</h2>
+    <p>From {{ entry.date_created.strftime('%Y-%m-%d %H:%M') }}</p>
+    
+    <form method="POST" action="{{ url_for('main.edit_entry', entry_id=entry.id) }}">
+        <div style="margin-bottom: 1rem;">
+            <label for="content">Journal Content:</label>
+            <textarea id="content" name="content" rows="8" required 
+                      style="width: 100%; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #ccc; border-radius: 4px;">{{ entry.content }}</textarea>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label for="tags">Tags (comma-separated):</label>
+            <input type="text" id="tags" name="tags" value="{{ tags_string }}"
+                   style="width: 100%; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        
+        {% if entry.emotion_score %}
+        <div style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+            <h4>Current Emotion Analysis:</h4>
+            <p>
+                Joy: {{ "%.1f"|format(entry.emotion_score.joy * 100) }}%,
+                Sadness: {{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%,
+                Anger: {{ "%.1f"|format(entry.emotion_score.anger * 100) }}%,
+                Fear: {{ "%.1f"|format(entry.emotion_score.fear * 100) }}%,
+                Surprise: {{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%
+            </p>
+            <p><em>Emotion analysis will be updated if you change the content significantly.</em></p>
+        </div>
+        {% endif %}
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" style="padding: 0.5rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 4px;">
+                Update Entry
+            </button>
+            <a href="{{ url_for('main.view_entry', entry_id=entry.id) }}" 
+               style="padding: 0.5rem 1.5rem; background: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
+                Cancel
+            </a>
+        </div>
+    </form>
+    
+    <hr style="margin: 2rem 0;">
+    
+    <div>
+        <h4>Danger Zone</h4>
+        <form method="POST" action="{{ url_for('main.delete_entry', entry_id=entry.id) }}" 
+              onsubmit="return confirm('Are you sure you want to delete this entry? This action cannot be undone.');">
+            <button type="submit" style="padding: 0.5rem 1.5rem; background: #dc3545; color: white; border: none; border-radius: 4px;">
+                Delete Entry
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

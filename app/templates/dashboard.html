@@ -25,6 +25,51 @@
 </div>
 {% endif %}
 
+<!-- NEW: Weekly Trend Analysis -->
+{% if trend_analysis %}
+<div class="chart-container">
+    <h3>📈 Weekly Progress Report</h3>
+    <p>Week of {{ current_week_start.strftime('%b %d') }} - {{ current_week_end.strftime('%b %d') }} vs Previous Week</p>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        {% for emotion, data in trend_analysis.items() %}
+        <div class="trend-card">
+            <h4>{{ emotion }}</h4>
+            
+            {% if data.direction != 'neutral' %}
+            <div class="trend-value {% if (data.direction == 'up' and emotion == 'joy') or (data.direction == 'down' and emotion != 'joy') %}trend-up{% else %}trend-down{% endif %}">
+                {{ data.change|abs }}% {{ data.direction }}
+            </div>
+            <div class="trend-comparison">
+                {{ data.current }}% vs {{ data.previous }}%
+            </div>
+            <div style="font-size: 0.8rem; color: #888; margin-top: 0.5rem;">
+                {% if (data.direction == 'up' and emotion == 'joy') or (data.direction == 'down' and emotion != 'joy') %}
+                👍 Improving
+                {% else %}
+                👎 Needs attention
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="trend-value" style="color: #6c757d;">
+                {{ data.current }}%
+            </div>
+            <div class="trend-comparison">
+                No previous data
+            </div>
+            {% endif %}
+            
+            <div style="font-size: 0.7rem; color: #999; margin-top: 0.5rem;">
+                Based on {{ data.current_count }} this week, {{ data.previous_count }} previous
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<h1>NO DATA</h1>
+{% endif %}
+
 <!-- Journal Entry Form -->
 <div style="margin-bottom: 2rem; padding: 1rem; border: 1px solid #ccc; border-radius: 5px;">
     <h3>New Journal Entry</h3>
@@ -46,11 +91,24 @@
 </div>
 
 <!-- Recent Entries -->
+
 <div>
     <h3>Recent Entries</h3>
     {% if entries %}
         {% for entry in entries %}
-            <div style="border: 1px solid #eee; padding: 1rem; margin: 1rem 0; border-radius: 5px;">
+            <!-- <div style="border: 1px solid #eee; padding: 1rem; margin: 1rem 0; border-radius: 5px;"> -->
+            <div style="border: 1px solid #eee; padding: 1rem; margin: 1rem 0; border-radius: 5px; position: relative;">
+                <div style="position: absolute; top: 0.5rem; right: 0.5rem; display: flex; gap: 0.5rem;">
+                    <a href="{{ url_for('main.view_entry', entry_id=entry.id) }}" 
+                    style="color: #007bff; text-decoration: none; font-size: 0.9rem;">View</a>
+                    <a href="{{ url_for('main.edit_entry', entry_id=entry.id) }}" 
+                    style="color: #28a745; text-decoration: none; font-size: 0.9rem;">Edit</a>
+                </div>
+                
+                <!-- <p><strong>{{ entry.date_created.strftime('%Y-%m-%d %H:%M') }}</strong></p>
+                <p>{{ entry.content[:200] }}{% if entry.content|length > 200 %}...{% endif %}</p> -->
+                <!-- ... rest of your entry display ... -->
+                <!-- </div> -->
                 <p><strong>{{ entry.date_created.strftime('%Y-%m-%d %H:%M') }}</strong></p>
                 <p>{{ entry.content }}</p>
                 {% if entry.tags %}
