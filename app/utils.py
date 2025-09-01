@@ -1,6 +1,20 @@
 import requests
 import os
-from flask import current_app
+# from flask import current_app, request
+# from flask_limiter import Limiter
+# from flask_limiter.util import get_remote_address
+
+# def get_user_identifier():
+#     """Custom function to identify users for rate limiting"""
+#     from flask_login import current_user
+#     if hasattr(current_user, 'id') and current_user.is_authenticated:
+#         return f"user_{current_user.id}"
+#     return get_remote_address()
+
+# # Initialize limiter (will be configured in create_app)
+# hf_limiter = Limiter(key_func=get_user_identifier)
+
+# @hf_limiter.limit("5 per minute")  # Strict limit on Hugging Face calls
 
 def analyze_sentiment(text):
     """
