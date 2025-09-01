@@ -26,7 +26,7 @@
 {% endif %}
 
 <!-- NEW: Weekly Trend Analysis -->
-{% if trend_analysis %}
+{% if trend_analysis and trend_analysis|length > 0 %}
 <div class="chart-container">
     <h3>📈 Weekly Progress Report</h3>
     <p>Week of {{ current_week_start.strftime('%b %d') }} - {{ current_week_end.strftime('%b %d') }} vs Previous Week</p>
@@ -67,7 +67,10 @@
     </div>
 </div>
 {% else %}
-<h1>NO DATA</h1>
+    <div class="chart-container">
+        <h3>📈 Weekly Progress Report</h3>
+        <p>Not enough data yet for trend analysis. Create more entries to see your progress!</p>
+    </div>
 {% endif %}
 
 <!-- Journal Entry Form -->
@@ -90,8 +93,25 @@
     </form>
 </div>
 
+<!-- Export Section -->
+<div class="chart-container">
+    <h3>📤 Export Your Data</h3>
+    <p>Download all your journal entries as a CSV file for your personal records.</p>
+    
+    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+        <a href="{{ url_for('main.export_entries') }}" 
+           class="btn btn-primary"
+           style="padding: 0.5rem 1rem; background: #28a745; color: white; text-decoration: none; border-radius: 4px;">
+            📄 Export to CSV
+        </a>
+        
+        <div style="font-size: 0.9rem; color: #666;">
+            <p><strong>Includes:</strong> Dates, journal content, tags, and emotion scores</p>
+            <p><strong>Limit:</strong> 5 exports per hour</p>
+        </div>
+    </div>
+</div>
 <!-- Recent Entries -->
-
 <div>
     <h3>Recent Entries</h3>
     {% if entries %}

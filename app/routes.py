@@ -1,8 +1,14 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user 
-from app import db, bcrypt
+from app import db, bcrypt #, limiter 
 from app.models import User, Entry, EmotionScore, Tag
 from app.utils import analyze_sentiment  # Import the utility function
+# from flask_limiter import Limiter  # Add if not already imported
+# from flask_limiter.util import get_remote_address
+# from flask_limiter.errors import RateLimitExceeded 
+from flask import make_response
+# import pandas as pd
+# from io import StringIO
 import json
 from datetime import datetime, timedelta
 
@@ -103,6 +109,7 @@ def index():
 # Route for the dashboard (will be protected later)
 @main_routes.route('/dashboard', methods=['GET', 'POST'])
 @login_required
+# @limiter.limit("10 per minute")  # NEW: Limit to 10 requests per minute
 def dashboard():
     if request.method == 'POST':
         # Get form data
@@ -133,7 +140,13 @@ def dashboard():
             db.session.flush()  # Flush to get the entry ID without committing
             
             # Analyze sentiment using Hugging Face API
-            emotion_scores = analyze_sentiment(content)
+            try:
+                emotion_scores = analyze_sentiment(content)
+            except Exception as e:
+                # This will catch rate limit exceptions
+                current_app.logger.warning(f"Rate limit exceeded or API error: {e}")
+                emotion_scores = None
+                flash('AI analysis temporarily unavailable. Entry saved without analysis.', 'warning')
             
             if emotion_scores:
                 # Create emotion score record
@@ -225,23 +238,21 @@ def dashboard():
             emotion_distribution[emotion] = round((total / entry_count) * 100, 1)
     
     # NEW: Weekly trend analysis (current week vs previous week)
+    from datetime import datetime, timezone
+    today = datetime.now(timezone.utc).date()
+    current_week_start = today - timedelta(days=today.weekday())
+    current_week_end = current_week_start + timedelta(days=6)
+
+    # Initialize trend_analysis as empty dict
     trend_analysis = {}
-    
-    if entry_count >= 2:  # Only calculate trends if we have enough data
-        from datetime import datetime, timedelta
-        
-        # Get current week dates (Monday to Sunday)
-        today = datetime.utcnow().date()
-        current_week_start = today - timedelta(days=today.weekday())  # Monday
-        current_week_end = current_week_start + timedelta(days=6)     # Sunday
-        
-        # Get previous week dates
-        previous_week_start = current_week_start - timedelta(days=7)
-        previous_week_end = current_week_start - timedelta(days=1)
-        
+
+    # Only calculate trends if we have enough data
+    if entry_count >= 2:
         # Convert to datetime for database comparison
         current_week_start_dt = datetime.combine(current_week_start, datetime.min.time())
         current_week_end_dt = datetime.combine(current_week_end, datetime.max.time())
+        previous_week_start = current_week_start - timedelta(days=7)
+        previous_week_end = current_week_start - timedelta(days=1)
         previous_week_start_dt = datetime.combine(previous_week_start, datetime.min.time())
         previous_week_end_dt = datetime.combine(previous_week_end, datetime.max.time())
         
@@ -249,16 +260,16 @@ def dashboard():
         current_week_entries = Entry.query\
             .options(db.joinedload(Entry.emotion_score))\
             .filter(Entry.user_id == current_user.id,
-                   Entry.date_created >= current_week_start_dt,
-                   Entry.date_created <= current_week_end_dt)\
+                Entry.date_created >= current_week_start_dt,
+                Entry.date_created <= current_week_end_dt)\
             .all()
         
         # Previous week entries
         previous_week_entries = Entry.query\
             .options(db.joinedload(Entry.emotion_score))\
             .filter(Entry.user_id == current_user.id,
-                   Entry.date_created >= previous_week_start_dt,
-                   Entry.date_created <= previous_week_end_dt)\
+                Entry.date_created >= previous_week_start_dt,
+                Entry.date_created <= previous_week_end_dt)\
             .all()
         
         # Calculate averages for both weeks
@@ -283,8 +294,7 @@ def dashboard():
         current_avg, current_count = calculate_week_average(current_week_entries)
         previous_avg, previous_count = calculate_week_average(previous_week_entries)
         
-        # Calculate trends (percentage change)
-        trend_analysis = {}
+        # Calculate trends (absolute difference)
         for emotion in emotion_totals.keys():
             current_val = current_avg.get(emotion, 0)
             previous_val = previous_avg.get(emotion, 0)
@@ -297,16 +307,6 @@ def dashboard():
                     'current': round(current_val, 1),
                     'previous': round(previous_val, 1),
                     'direction': 'up' if change > 2 else 'down' if change < -2 else 'stable',
-                    'current_count': current_count,
-                    'previous_count': previous_count
-                }
-            elif current_avg.get(emotion, 0) > 0:
-                # Only current week data available
-                trend_analysis[emotion] = {
-                    'change': 0,
-                    'current': round(current_avg[emotion], 1),
-                    'previous': round(previous_val, 1),
-                    'direction': 'neutral',
                     'current_count': current_count,
                     'previous_count': previous_count
                 }
@@ -376,7 +376,14 @@ def edit_entry(entry_id):
             
             # Re-analyze sentiment if content changed significantly
             if content != entry.content:
-                emotion_scores = analyze_sentiment(content)
+                try:
+                    emotion_scores = analyze_sentiment(content)
+                except Exception as e:
+                    # This will catch rate limit exceptions
+                    current_app.logger.warning(f"Rate limit exceeded or API error: {e}")
+                    emotion_scores = None
+                    flash('AI analysis temporarily unavailable. Entry saved without analysis.', 'warning')
+
                 if emotion_scores and entry.emotion_score:
                     entry.emotion_score.joy = emotion_scores.get('joy', 0.0)
                     entry.emotion_score.sadness = emotion_scores.get('sadness', 0.0)
@@ -420,13 +427,84 @@ def delete_entry(entry_id):
     
     return redirect(url_for('main.dashboard'))
 
+# Export route
+@main_routes.route('/export/entries')
+@login_required
+# @limiter.limit("5 per hour")  # Limit exports to prevent abuse
+def export_entries():
+    """Export all journal entries as CSV"""
+    # Import pandas only when this route is called
+    import pandas as pd
+    from io import StringIO
+    
+    try:
+        # Get all user's entries with emotion scores and tags
+        entries = Entry.query\
+            .options(db.joinedload(Entry.emotion_score), db.joinedload(Entry.tags))\
+            .filter(Entry.user_id == current_user.id)\
+            .order_by(Entry.date_created.desc())\
+            .all()
+        
+        if not entries:
+            flash('No entries to export.', 'warning')
+            return redirect(url_for('main.dashboard'))
+        
+        # Prepare data for CSV
+        data = []
+        for entry in entries:
+            # Get tags as comma-separated string
+            tags = ', '.join([tag.name for tag in entry.tags]) if entry.tags else ''
+            
+            # Get emotion scores
+            emotions = entry.emotion_score
+            emotion_data = {
+                'joy': emotions.joy * 100 if emotions else 0,
+                'sadness': emotions.sadness * 100 if emotions else 0,
+                'anger': emotions.anger * 100 if emotions else 0,
+                'fear': emotions.fear * 100 if emotions else 0,
+                'surprise': emotions.surprise * 100 if emotions else 0,
+            } if emotions else {}
+            
+            data.append({
+                'Date': entry.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+                'Content': entry.content,
+                'Tags': tags,
+                'Joy (%)': emotion_data.get('joy', 0),
+                'Sadness (%)': emotion_data.get('sadness', 0),
+                'Anger (%)': emotion_data.get('anger', 0),
+                'Fear (%)': emotion_data.get('fear', 0),
+                'Surprise (%)': emotion_data.get('surprise', 0),
+            })
+        
+        # Create DataFrame and convert to CSV
+        df = pd.DataFrame(data)
+        csv_data = StringIO()
+        df.to_csv(csv_data, index=False)
+        
+        # Create response with CSV file
+        response = make_response(csv_data.getvalue())
+        response.headers['Content-Disposition'] = f'attachment; filename=mood_journal_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        response.headers['Content-type'] = 'text/csv'
+        
+        flash('Export completed successfully!', 'success')
+        return response
+        
+    except Exception as e:
+        current_app.logger.error(f"Export error: {e}")
+        flash('An error occurred during export. Please try again.', 'error')
+        return redirect(url_for('main.dashboard'))
+
+# Custom error handler for rate limits
+# @main_routes.errorhandler(RateLimitExceeded)
+# def handle_rate_limit_exceeded(e):
+#     flash('Too many requests. Please slow down and try again in a moment.', 'error')
+#     return redirect(url_for('main.dashboard'))
 
 # Custom error handler for 401 errors...redundancy a function was created in __init__.py
 # @main_routes.app_errorhandler(401)
 # def unauthorized_error(error):
 #     flash('Please log in to access this page.', 'error')
 #     return redirect(url_for('auth.login'))
-
 
 # Base function example
 # @auth_routes.route('/register')
