@@ -2,29 +2,6 @@
 
 {% block content %}
 <h2>Your Mood Journal</h2>
-
-<!-- Charts Row -->
-  {% if dates or emotion_distribution %}
-<div class="charts-row">
-    <!-- Mood Trends Chart -->
-    {% if dates %}
-    <div class="chart-container">
-        <h3>Your Mood Trends (Last 7 Days)</h3>
-        <canvas id="moodChart" width="400" height="200"></canvas>
-    </div>
-    {% endif %}
-
-    <!-- Emotion Distribution Pie Chart -->
-    {% if emotion_distribution %}
-    <div class="chart-container">
-        <h3>Overall Emotion Distribution</h3>
-        <p>Based on {{ entry_count }} journal entries</p>
-        <canvas id="emotionPieChart" width="400" height="400"></canvas>
-    </div>
-    {% endif %}
-</div>
-{% endif %}
-
 <!-- Improved Visualization Section -->
 <div class="charts-row">
     <!-- Weekly Summary Cards -->
@@ -58,7 +35,7 @@
     </div>
 
     <!-- Emotion Sparklines -->
-    <div class="chart-container">
+    <!-- <div class="chart-container">
         <h3>📈 Emotion Trends</h3>
         <div style="display: grid; gap: 1.5rem; margin-top: 1rem;">
             {% for emotion in ['joy', 'sadness', 'anger', 'fear', 'surprise'] %}
@@ -81,12 +58,34 @@
             </div>
             {% endfor %}
         </div>
-    </div>
+    </div> -->
 </div>
+
+<!-- Charts Row -->
+  {% if dates or emotion_distribution %}
+<div class="charts-row">
+  <!-- Mood Trends Chart -->
+    {% if dates %}
+    <div class="chart-container" style="width: 85%;">
+        <h3>Your Mood Trends (Last 7 Days)</h3>
+        <canvas id="moodChart" width="400" height="200"></canvas>
+    </div>
+    {% endif %}
+
+    <!-- Emotion Distribution Pie Chart -->
+    {% if emotion_distribution %}
+    <div class="chart-container" style="width: 85%;">
+        <h3>Overall Emotion Distribution</h3>
+        <p>Based on {{ entry_count }} journal entries</p>
+        <canvas id="emotionPieChart" width="400" height="400"></canvas>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
 
 <!-- Dominant Emotions -->
 {% if sparkline_data.dates %}
-<div class="chart-container">
+<div class="chart-container"style="width: 85%;">
     <h3>🎯 Daily Dominant Emotions</h3>
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
         {% for i in range(sparkline_data.dates|length) %}
@@ -114,7 +113,7 @@
 
 <!-- NEW: Weekly Trend Analysis -->
 {% if trend_analysis and trend_analysis|length > 0 %}
-<div class="chart-container">
+<div class="chart-container" style="width: 85%;">
     <h3>📈 Weekly Progress Report</h3>
     <p>Week of {{ current_week_start.strftime('%b %d') }} - {{ current_week_end.strftime('%b %d') }} vs Previous Week</p>
     
@@ -167,12 +166,12 @@
         <div>
             <label for="content">How are you feeling today?</label>
             <textarea id="content" name="content" rows="5" required 
-                      style="width: 100%; padding: 0.5rem; margin: 0.5rem 0;"></textarea>
+                      style="width: 95%; padding: 0.5rem; margin: 0.5rem 0;"></textarea>
         </div>
         <div>
             <label for="tags">Tags (comma-separated, e.g., work, family, health):</label>
             <input type="text" id="tags" name="tags" 
-                   style="width: 100%; padding: 0.5rem; margin: 0.5rem 0;">
+                   style="width: 95%; padding: 0.5rem; margin: 0.5rem 0;">
         </div>
         <button type="submit" style="padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 3px;">
             Save Entry & Analyze Mood
@@ -181,7 +180,7 @@
 </div>
 
 <!-- Export Section -->
-<div class="chart-container">
+<div class="chart-container" style="width: 85%;">
     <h3>📤 Export Your Data</h3>
     <p>Download all your journal entries as a CSV file for your personal records.</p>
     
@@ -250,7 +249,7 @@
 </div>
 
 {% if dates %}
-<script>
+<!-- <script>
     document.addEventListener('DOMContentLoaded', function() {
         const ctx = document.getElementById('moodChart').getContext('2d');
         const moodChart = new Chart(ctx, {
@@ -321,6 +320,74 @@
                     title: {
                         display: true,
                         text: 'Emotion Scores by Date'
+                    }
+                }
+            }
+        });
+    });
+</script> -->
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('moodChart').getContext('2d');
+        const moodChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ dates | tojson }},
+                datasets: [
+                    {
+                        label: 'Joy',
+                        data: {{ joy_scores | tojson }},
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Sadness',
+                        data: {{ sadness_scores | tojson }},
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Anger',
+                        data: {{ anger_scores | tojson }},
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Fear',
+                        data: {{ fear_scores | tojson }},
+                        borderColor: 'rgb(255, 159, 64)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Surprise',
+                        data: {{ surprise_scores | tojson }},
+                        borderColor: 'rgb(153, 102, 255)',
+                        tension: 0.1,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Emotion Score (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
                     }
                 }
             }

@@ -40,12 +40,13 @@
         display: flex;
         flex-wrap: wrap;
         gap: 2rem;
-        margin: 2rem 0;
+        /* margin: 1rem 0; */
     }
     
     .chart-container {
         flex: 1;
-        min-width: 300px;
+        /* min-width: 300px; */
+        width: 100%;
         margin: 1rem 0;
         padding: 1.5rem;
         border: 1px solid #e0e0e0;
@@ -185,7 +186,7 @@
     </style>
 </head>
 <body>
-    <nav>
+   <nav>
         <h1>Mood Journal</h1>
         <div>
             <a href="{{ url_for('main.index') }}">Home</a>
