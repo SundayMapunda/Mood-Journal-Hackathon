@@ -22,7 +22,7 @@ migrate = Migrate()
 def create_app():
     # Create the Flask application instance
     app = Flask(__name__)
-
+    
     # Load configuration from .env file
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
     # Configure the database

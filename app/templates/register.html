@@ -1,116 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mood Journal</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-
-    <nav>
-    <div class="logo">
-    <span class="logo-icon">📓</span>
-    <h1 class="logo-text">Mood Journal</h1>
-</div>
-        <div>
-            <a href="{{ url_for('auth.index') }}">Home</a>
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
-                <span>Hello, {{ current_user.username }}!</span>
-                <a href="{{ url_for('auth.logout') }}">Logout</a>
-            {% else %}
-                <a href="{{ url_for('auth.login') }}">Login</a>
-                <a href="{{ url_for('auth.register') }}">Register</a>
-            {% endif %}
-        </div>
-    </nav>
-
 {% extends "base.html" %}
 
 {% block content %}
-<div class="auth-container">
-    <h2>Create Account</h2>
-    <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form" id="registerForm">
-        <div class="form-group">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required placeholder="Choose a username">
-        </div>
-
-        <div class="form-group">
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required placeholder="Create a strong password">
-            <div class="password-strength">
-                <div class="strength-bar" id="strengthBar"></div>
-            </div>
-            <div class="strength-text" id="strengthText">Password strength</div>
-        </div>
-
-        <div class="form-group">
-            <label for="confirm_password">Confirm Password:</label>
-            <input type="password" id="confirm_password" name="confirm_password" required placeholder="Confirm your password">
-            <div class="password-match" id="passwordMatch">
-                <span class="match-icon">🔒</span>
-                <span class="match-text">Passwords must match</span>
-            </div>
-        </div>
-
-        <button type="submit" class="register-btn">Create Account</button>
-    </form>
-
-    <div class="auth-links">
-        <p>Already have an account?</p>
-        <a href="login.html" class="auth-link">Login here</a>
+<h2>Register</h2>
+<form method="POST" action="{{ url_for('auth.register') }}">
+    <div>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
     </div>
-</div>
-
-<script>
-// Simple password strength indicator
-document.getElementById('password').addEventListener('input', function() {
-    const password = this.value;
-    const strengthBar = document.getElementById('strengthBar');
-    const strengthText = document.getElementById('strengthText');
-
-    let strength = 0;
-    if (password.length >= 8) strength += 1;
-    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength += 1;
-    if (password.match(/\d/)) strength += 1;
-    if (password.match(/[^a-zA-Z\d]/)) strength += 1;
-
-    strengthBar.className = 'strength-bar';
-    if (password.length === 0) {
-        strengthText.textContent = 'Password strength';
-    } else if (strength <= 1) {
-        strengthBar.classList.add('strength-weak');
-        strengthText.textContent = 'Weak password';
-        strengthText.style.color = '#e74c3c';
-    } else if (strength <= 2) {
-        strengthBar.classList.add('strength-medium');
-        strengthText.textContent = 'Medium strength';
-        strengthText.style.color = '#f39c12';
-    } else {
-        strengthBar.classList.add('strength-strong');
-        strengthText.textContent = 'Strong password!';
-        strengthText.style.color = '#27ae60';
-    }
-});
-
-// Password match validation
-document.getElementById('confirm_password').addEventListener('input', function() {
-    const password = document.getElementById('password').value;
-    const confirmPassword = this.value;
-    const matchElement = document.getElementById('passwordMatch');
-
-    if (confirmPassword.length === 0) {
-        matchElement.innerHTML = '<span class="match-icon">🔒</span><span class="match-text">Passwords must match</span>';
-        matchElement.style.color = '#6c757d';
-    } else if (password === confirmPassword) {
-        matchElement.innerHTML = '<span class="match-icon">✅</span><span class="match-text match-valid">Passwords match!</span>';
-    } else {
-        matchElement.innerHTML = '<span class="match-icon">❌</span><span class="match-text match-invalid">Passwords do not match</span>';
-    }
-});
-</script>
+    <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+    </div>
+    <div>
+        <label for="confirm_password">Confirm Password:</label>
+        <input type="password" id="confirm_password" name="confirm_password" required>
+    </div>
+    <button type="submit">Register</button>
+</form>
+<p>Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a>.</p>
 {% endblock %}
-</body>
-</html>

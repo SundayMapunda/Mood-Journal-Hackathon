@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mood Journal</title>
-    <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .flash-messages {
@@ -43,7 +42,7 @@
         gap: 2rem;
         /* margin: 1rem 0; */
     }
-
+    
     .chart-container {
         flex: 1;
         /* min-width: 300px; */
@@ -55,7 +54,7 @@
         background: white;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
+    
     .chart-container h3 {
         margin-top: 0;
         color: #333;
@@ -187,13 +186,10 @@
     </style>
 </head>
 <body>
-    <nav>
-<div class="logo">
-    <span class="logo-icon">📓</span>
-    <h1 class="logo-text">Mood Journal</h1>
-</div>
+   <nav>
+        <h1>Mood Journal</h1>
         <div>
-            <a href="{{ url_for('auth.index') }}">Home</a>
+            <a href="{{ url_for('main.index') }}">Home</a>
             {% if current_user.is_authenticated %}
                 <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
                 <span>Hello, {{ current_user.username }}!</span>
@@ -218,9 +214,7 @@
         {% endwith %}
 
         <!-- Other templates will insert their content here -->
-    <div class="content-block">
         {% block content %}{% endblock %}
-    </div>
     </main>
     <!-- Auto-dismiss flash messages with slide animations -->
 <script>
