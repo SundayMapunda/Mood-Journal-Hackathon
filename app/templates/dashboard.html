@@ -4,7 +4,7 @@
 <h2>Your Mood Journal</h2>
 
 <!-- Charts Row -->
-{% if dates or emotion_distribution %}
+  {% if dates or emotion_distribution %}
 <div class="charts-row">
     <!-- Mood Trends Chart -->
     {% if dates %}
@@ -22,6 +22,93 @@
         <canvas id="emotionPieChart" width="400" height="400"></canvas>
     </div>
     {% endif %}
+</div>
+{% endif %}
+
+<!-- Improved Visualization Section -->
+<div class="charts-row">
+    <!-- Weekly Summary Cards -->
+    <div class="chart-container">
+        <h3>📊 Weekly Summary</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <div style="text-align: center; padding: 1rem; background: #e8f5e8; border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold; color: #28a745;">
+                    {{ summary_stats.current_week.entries }}
+                </div>
+                <div style="font-size: 0.9rem;">Entries This Week</div>
+                {% if summary_stats.change.entries != 0 %}
+                <div style="font-size: 0.8rem; color: {% if summary_stats.change.entries > 0 %}#28a745{% else %}#dc3545{% endif %};">
+                    {{ summary_stats.change.entries|abs }}% {% if summary_stats.change.entries > 0 %}↑{% else %}↓{% endif %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div style="text-align: center; padding: 1rem; background: #e8f5e8; border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold; color: #28a745;">
+                    {{ "%.1f"|format(summary_stats.current_week.avg_joy) }}%
+                </div>
+                <div style="font-size: 0.9rem;">Average Joy</div>
+                {% if summary_stats.change.avg_joy != 0 %}
+                <div style="font-size: 0.8rem; color: {% if summary_stats.change.avg_joy > 0 %}#28a745{% else %}#dc3545{% endif %};">
+                    {{ summary_stats.change.avg_joy|abs }}% {% if summary_stats.change.avg_joy > 0 %}↑{% else %}↓{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Emotion Sparklines -->
+    <div class="chart-container">
+        <h3>📈 Emotion Trends</h3>
+        <div style="display: grid; gap: 1.5rem; margin-top: 1rem;">
+            {% for emotion in ['joy', 'sadness', 'anger', 'fear', 'surprise'] %}
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="font-weight: bold; min-width: 70px; text-transform: capitalize; color: 
+                    {% if emotion == 'joy' %}#28a745
+                    {% elif emotion == 'sadness' %}#007bff
+                    {% elif emotion == 'anger' %}#dc3545
+                    {% elif emotion == 'fear' %}#ffc107
+                    {% else %}#6f42c1
+                    {% endif %}">
+                    {{ emotion }}
+                </div>
+                <div style="flex: 1; height: 40px; position: relative;">
+                    <canvas id="sparkline-{{ emotion }}" width="200" height="40"></canvas>
+                </div>
+                <div style="min-width: 40px; text-align: right; font-weight: bold;">
+                    {{ "%.1f"|format(sparkline_data[emotion][-1] if sparkline_data[emotion] else 0) }}%
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Dominant Emotions -->
+{% if sparkline_data.dates %}
+<div class="chart-container">
+    <h3>🎯 Daily Dominant Emotions</h3>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
+        {% for i in range(sparkline_data.dates|length) %}
+        <div style="text-align: center; padding: 0.5rem; min-width: 60px;">
+            <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.25rem;">
+                {{ sparkline_data.dates[i].split('-')[-1] }}/{{ sparkline_data.dates[i].split('-')[1] }}
+            </div>
+            <div style="font-size: 1.5rem;">
+                {% set emotion = sparkline_data.dominant_emotions[i] %}
+                {% if emotion == 'joy' %}😊
+                {% elif emotion == 'sadness' %}😢
+                {% elif emotion == 'anger' %}😠
+                {% elif emotion == 'fear' %}😨
+                {% else %}😲
+                {% endif %}
+            </div>
+            <div style="font-size: 0.7rem; color: #666; text-transform: capitalize;">
+                {{ emotion }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% endif %}
 
@@ -107,14 +194,20 @@
         
         <div style="font-size: 0.9rem; color: #666;">
             <p><strong>Includes:</strong> Dates, journal content, tags, and emotion scores</p>
-            <p><strong>Limit:</strong> 5 exports per hour</p>
         </div>
     </div>
 </div>
+
 <!-- Recent Entries -->
 <div>
-    <h3>Recent Entries</h3>
-    {% if entries %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Recent Entries</h3>
+        <a href="{{ url_for('main.view_all_entries') }}" 
+           style="padding: 0.3rem 0.8rem; background: #6c757d; color: white; text-decoration: none; border-radius: 3px; font-size: 0.9rem;">
+            View All Entries
+        </a>
+    </div>
+        {% if entries %}
         {% for entry in entries %}
             <!-- <div style="border: 1px solid #eee; padding: 1rem; margin: 1rem 0; border-radius: 5px;"> -->
             <div style="border: 1px solid #eee; padding: 1rem; margin: 1rem 0; border-radius: 5px; position: relative;">
@@ -156,50 +249,49 @@
     {% endif %}
 </div>
 
-<!-- Chart.js Script -->
 {% if dates %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const ctx = document.getElementById('moodChart').getContext('2d');
         const moodChart = new Chart(ctx, {
-            type: 'line',
+            type: 'bar',  // Changed from 'line' to 'bar'
             data: {
                 labels: {{ dates | tojson }},
                 datasets: [
                     {
                         label: 'Joy',
                         data: {{ joy_scores | tojson }},
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)', // Changed to backgroundColor
                         borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1,
-                        fill: false
+                        borderWidth: 1
                     },
                     {
                         label: 'Sadness',
                         data: {{ sadness_scores | tojson }},
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)', // Changed to backgroundColor
                         borderColor: 'rgb(54, 162, 235)',
-                        tension: 0.1,
-                        fill: false
+                        borderWidth: 1
                     },
                     {
                         label: 'Anger',
                         data: {{ anger_scores | tojson }},
+                        backgroundColor: 'rgba(255, 99, 132, 0.7)', // Changed to backgroundColor
                         borderColor: 'rgb(255, 99, 132)',
-                        tension: 0.1,
-                        fill: false
+                        borderWidth: 1
                     },
                     {
                         label: 'Fear',
                         data: {{ fear_scores | tojson }},
+                        backgroundColor: 'rgba(255, 159, 64, 0.7)', // Changed to backgroundColor
                         borderColor: 'rgb(255, 159, 64)',
-                        tension: 0.1,
-                        fill: false
+                        borderWidth: 1
                     },
                     {
                         label: 'Surprise',
                         data: {{ surprise_scores | tojson }},
+                        backgroundColor: 'rgba(153, 102, 255, 0.7)', // Changed to backgroundColor
                         borderColor: 'rgb(153, 102, 255)',
-                        tension: 0.1,
-                        fill: false
+                        borderWidth: 1
                     }
                 ]
             },
@@ -219,6 +311,16 @@
                             display: true,
                             text: 'Date'
                         }
+                    }
+                },
+                // Added for better bar chart display
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Emotion Scores by Date'
                     }
                 }
             }
@@ -280,5 +382,64 @@
     });
 </script>
 {% endif %}
+
+<!-- Sparkline Charts Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const emotions = ['joy', 'sadness', 'anger', 'fear', 'surprise'];
+    const colors = {
+        'joy': '#28a745',
+        'sadness': '#007bff', 
+        'anger': '#dc3545',
+        'fear': '#ffc107',
+        'surprise': '#6f42c1'
+    };
+    
+    emotions.forEach(emotion => {
+        const canvas = document.getElementById(`sparkline-${emotion}`);
+        if (!canvas) return;
+        
+        // Get data from JavaScript variable instead of template
+        const sparklineData = {{ sparkline_data | tojson }};
+        const data = sparklineData[emotion] || [];
+        
+        if (data.length > 0) {
+            const ctx = canvas.getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(() => ''),
+                    datasets: [{
+                        data: data,
+                        borderColor: colors[emotion],
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            display: false,
+                            min: 0,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        } else {
+            // Show message if no data
+            canvas.parentElement.innerHTML = '<div style="color: #999; font-style: italic;">No data yet</div>';
+        }
+    });
+});
+</script>
 
 {% endblock %}

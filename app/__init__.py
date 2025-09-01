@@ -2,6 +2,7 @@ from flask import Flask, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
 from flask_bcrypt import Bcrypt
+from flask_migrate import Migrate
 # from flask_limiter import Limiter  # NEW
 # from flask_limiter.util import get_remote_address  # NEW
 # from app.utils import hf_limiter 
@@ -16,6 +17,7 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 bcrypt = Bcrypt()
 # limiter = Limiter(key_func=get_remote_address)  # NEW
+migrate = Migrate()
 
 def create_app():
     # Create the Flask application instance
@@ -40,6 +42,7 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     bcrypt.init_app(app)
+    migrate.init_app(app, db)
     # limiter.init_app(app)  # NEW
     # hf_limiter.init_app(app)  # NEW: Initialize the Hugging Face limiter
 
