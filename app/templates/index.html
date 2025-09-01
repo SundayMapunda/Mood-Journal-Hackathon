@@ -1,7 +1,60 @@
-{% extends "base.html" %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Journal</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav>
+<div class="logo">
+    <span class="logo-icon">📓</span>
+    <h1 class="logo-text">Mood Journal</h1>
+</div>
+        <div>
+            <a href="{{ url_for('auth.index') }}">Home</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                <span>Hello, {{ current_user.username }}!</span>
+                <a href="{{ url_for('auth.logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}">Login</a>
+                <a href="{{ url_for('auth.register') }}">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+
+{% extends "base.html" %}
 
 {% block content %}
-<h2>Welcome to Mood Journal</h2>
-<p>Track your emotions and understand your mood trends.</p>
-<a href="{{ url_for('auth.register') }}">Get Started</a>
+<div class="landing-container">
+    <h2>Welcome to Mood Journal</h2>
+    <p>Track your emotions and understand your mood trends.</p>
+    <a href="{{ url_for('auth.register') }}" class="cta-button">Get Started</a>
+</div>
+
+<!-- Optional Features Section -->
+<div class="features">
+    <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Track Your Mood</h3>
+        <p>Record your daily emotions and see patterns over time with beautiful charts and analytics.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>Journal Your Thoughts</h3>
+        <p>Write about your day and gain insights into your emotional well-being.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>Understand Patterns</h3>
+        <p>Discover what triggers different emotions and learn more about yourself.</p>
+    </div>
+</div>
 {% endblock %}
+</body>
+</html>
+
