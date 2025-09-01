@@ -181,15 +181,26 @@ def dashboard():
 
     # Get data for the line chart - last 7 days of emotion scores
     import datetime
+    from collections import defaultdict
+    from sqlalchemy import func
+
     seven_days_ago = datetime.datetime.utcnow() - datetime.timedelta(days=7)
-    
-    chart_data = Entry.query\
-        .join(EmotionScore)\
-        .filter(Entry.user_id == current_user.id,
-               Entry.date_created >= seven_days_ago)\
-        .order_by(Entry.date_created.asc())\
-        .all()
-    
+
+    # Query to get average scores per day
+    chart_data = db.session.query(
+        func.date(Entry.date_created).label('date'),
+        func.avg(EmotionScore.joy).label('avg_joy'),
+        func.avg(EmotionScore.sadness).label('avg_sadness'),
+        func.avg(EmotionScore.anger).label('avg_anger'),
+        func.avg(EmotionScore.fear).label('avg_fear'),
+        func.avg(EmotionScore.surprise).label('avg_surprise')
+    ).join(EmotionScore)\
+    .filter(Entry.user_id == current_user.id,
+            Entry.date_created >= seven_days_ago)\
+    .group_by(func.date(Entry.date_created))\
+    .order_by(func.date(Entry.date_created).asc())\
+    .all()
+
     # Prepare data for Chart.js
     dates = []
     joy_scores = []
@@ -197,15 +208,66 @@ def dashboard():
     anger_scores = []
     fear_scores = []
     surprise_scores = []
+
+    for data in chart_data:
+        dates.append(data.date.strftime('%Y-%m-%d'))
+        joy_scores.append(round(data.avg_joy * 100, 1))
+        sadness_scores.append(round(data.avg_sadness * 100, 1))
+        anger_scores.append(round(data.avg_anger * 100, 1))
+        fear_scores.append(round(data.avg_fear * 100, 1))
+        surprise_scores.append(round(data.avg_surprise * 100, 1))
     
-    for entry in chart_data:
-        dates.append(entry.date_created.strftime('%Y-%m-%d'))
-        if entry.emotion_score:  # Check if emotion_score exists
-            joy_scores.append(round(entry.emotion_score.joy * 100, 1))
-            sadness_scores.append(round(entry.emotion_score.sadness * 100, 1))
-            anger_scores.append(round(entry.emotion_score.anger * 100, 1))
-            fear_scores.append(round(entry.emotion_score.fear * 100, 1))
-            surprise_scores.append(round(entry.emotion_score.surprise * 100, 1))
+    # NEW: Get data for sparklines and summary (last 14 days)
+    from datetime import datetime, timezone
+    fourteen_days_ago = datetime.now(timezone.utc) - timedelta(days=14)
+    
+    chart_entries = Entry.query\
+        .options(db.joinedload(Entry.emotion_score))\
+        .filter(Entry.user_id == current_user.id,
+               Entry.date_created >= fourteen_days_ago)\
+        .order_by(Entry.date_created.asc())\
+        .all()
+    
+    # Prepare data for sparklines and summary
+    sparkline_data = {
+        'dates': [],
+        'joy': [], 'sadness': [], 'anger': [], 'fear': [], 'surprise': [],
+        'dominant_emotions': []
+    }
+    
+    # Group entries by date and calculate daily averages
+    daily_data = {}
+    for entry in chart_entries:
+        if entry.emotion_score:
+            date_str = entry.date_created.strftime('%Y-%m-%d')
+            if date_str not in daily_data:
+                daily_data[date_str] = {
+                    'joy': [], 'sadness': [], 'anger': [], 'fear': [], 'surprise': [],
+                    'count': 0
+                }
+            
+            daily_data[date_str]['joy'].append(entry.emotion_score.joy)
+            daily_data[date_str]['sadness'].append(entry.emotion_score.sadness)
+            daily_data[date_str]['anger'].append(entry.emotion_score.anger)
+            daily_data[date_str]['fear'].append(entry.emotion_score.fear)
+            daily_data[date_str]['surprise'].append(entry.emotion_score.surprise)
+            daily_data[date_str]['count'] += 1
+    
+    # Calculate daily averages and dominant emotions
+    for date_str, emotions in sorted(daily_data.items()):
+        sparkline_data['dates'].append(date_str)
+        
+        for emotion in ['joy', 'sadness', 'anger', 'fear', 'surprise']:
+            avg = sum(emotions[emotion]) / len(emotions[emotion]) * 100 if emotions[emotion] else 0
+            sparkline_data[emotion].append(round(avg, 1))
+        
+        # Find dominant emotion for the day
+        emotion_avgs = {e: sparkline_data[e][-1] for e in ['joy', 'sadness', 'anger', 'fear', 'surprise']}
+        dominant_emotion = max(emotion_avgs.items(), key=lambda x: x[1])
+        sparkline_data['dominant_emotions'].append(dominant_emotion[0])
+    
+    # Calculate summary statistics (current week vs previous week)
+    summary_stats = calculate_weekly_summary(current_user.id)
     
     # NEW: Calculate emotion distribution for pie chart
     all_entries = Entry.query\
@@ -323,7 +385,9 @@ def dashboard():
                          entry_count=entry_count,  # NEW
                          trend_analysis=trend_analysis,
                          current_week_start=current_week_start,  # NEW
-                         current_week_end=current_week_end)      # NEW
+                         current_week_end=current_week_end,      # NEW
+                         sparkline_data=sparkline_data,
+                         summary_stats=summary_stats)
 
 # Route to view a single entry
 @main_routes.route('/entry/<int:entry_id>')
@@ -493,6 +557,125 @@ def export_entries():
         current_app.logger.error(f"Export error: {e}")
         flash('An error occurred during export. Please try again.', 'error')
         return redirect(url_for('main.dashboard'))
+
+@main_routes.route('/entries')
+@login_required
+def view_all_entries():
+    """View all journal entries with filtering and pagination"""
+    # Get filter parameters from query string
+    date_filter = request.args.get('date_filter', 'all')
+    tag_filter = request.args.getlist('tag')  # Get multiple tags
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    
+    # Start with base query
+    query = Entry.query\
+        .options(db.joinedload(Entry.emotion_score), db.joinedload(Entry.tags))\
+        .filter(Entry.user_id == current_user.id)
+    
+    # Apply date filters
+    from datetime import datetime, timezone
+    if date_filter != 'all':
+        today = datetime.now(timezone.utc).date()
+        if date_filter == '7days':
+            start_date = today - timedelta(days=7)
+        elif date_filter == '30days':
+            start_date = today - timedelta(days=30)
+        elif date_filter == '90days':
+            start_date = today - timedelta(days=90)
+        else:
+            start_date = today - timedelta(days=7)  # Default
+        
+        start_dt = datetime.combine(start_date, datetime.min.time())
+        query = query.filter(Entry.date_created >= start_dt)
+    
+    # Apply tag filters
+    if tag_filter:
+        # Filter entries that have any of the selected tags
+        query = query.join(Entry.tags).filter(Tag.name.in_(tag_filter))
+    
+    # Get paginated results
+    entries_pagination = query\
+        .order_by(Entry.date_created.desc())\
+        .paginate(page=page, per_page=per_page, error_out=False)
+    
+    # Get all unique tags for the filter dropdown
+    all_tags = Tag.query\
+        .join(Entry.tags)\
+        .filter(Entry.user_id == current_user.id)\
+        .distinct()\
+        .all()
+    
+    return render_template('all_entries.html', 
+                         entries=entries_pagination.items,
+                         pagination=entries_pagination,
+                         all_tags=all_tags,
+                         current_date_filter=date_filter,
+                         current_tag_filter=tag_filter)
+
+def calculate_weekly_summary(user_id):
+    """Calculate weekly summary statistics"""
+    from datetime import datetime, timedelta, timezone
+    
+    today = datetime.now(timezone.utc).date()
+    current_week_start = today - timedelta(days=today.weekday())
+    previous_week_start = current_week_start - timedelta(days=7)
+    
+    summary = {
+        'current_week': {'entries': 0, 'avg_joy': 0, 'avg_sadness': 0},
+        'previous_week': {'entries': 0, 'avg_joy': 0, 'avg_sadness': 0},
+        'change': {}
+    }
+    
+    # Helper function to calculate week stats
+    def get_week_stats(start_date, end_date):
+        entries = Entry.query\
+            .options(db.joinedload(Entry.emotion_score))\
+            .filter(Entry.user_id == user_id,
+                   Entry.date_created >= start_date,
+                   Entry.date_created <= end_date)\
+            .all()
+        
+        stats = {'entries': len(entries), 'joy': [], 'sadness': []}
+        
+        for entry in entries:
+            if entry.emotion_score:
+                stats['joy'].append(entry.emotion_score.joy)
+                stats['sadness'].append(entry.emotion_score.sadness)
+        
+        stats['avg_joy'] = (sum(stats['joy']) / len(stats['joy']) * 100) if stats['joy'] else 0
+        stats['avg_sadness'] = (sum(stats['sadness']) / len(stats['sadness']) * 100) if stats['sadness'] else 0
+        
+        return stats
+    
+    # Get stats for both weeks
+    current_stats = get_week_stats(
+        datetime.combine(current_week_start, datetime.min.time()),
+        datetime.combine(current_week_start + timedelta(days=6), datetime.max.time())
+    )
+    
+    previous_stats = get_week_stats(
+        datetime.combine(previous_week_start, datetime.min.time()),
+        datetime.combine(previous_week_start + timedelta(days=6), datetime.max.time())
+    )
+    
+    summary['current_week'] = current_stats
+    summary['previous_week'] = previous_stats
+    
+    # Calculate changes
+    for metric in ['entries', 'avg_joy', 'avg_sadness']:
+        current_val = current_stats.get(metric, 0)
+        previous_val = previous_stats.get(metric, 0)
+        
+        if previous_val > 0:
+            change = ((current_val - previous_val) / previous_val) * 100
+        else:
+            change = 0
+        
+        summary['change'][metric] = round(change, 1)
+    
+    return summary
+
 
 # Custom error handler for rate limits
 # @main_routes.errorhandler(RateLimitExceeded)

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>All Journal Entries</h2>
+        <a href="{{ url_for('main.dashboard') }}" 
+           style="padding: 0.5rem 1rem; background: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Filter Form -->
+    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h3 style="margin: 0 0 1rem 0;">Filter Entries</h3>
+        <form method="GET" action="{{ url_for('main.view_all_entries') }}">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: end;">
+                <!-- Date Filter -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Time Period:</label>
+                    <select name="date_filter" style="padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px;">
+                        <option value="all" {% if current_date_filter == 'all' %}selected{% endif %}>All Time</option>
+                        <option value="7days" {% if current_date_filter == '7days' %}selected{% endif %}>Last 7 Days</option>
+                        <option value="30days" {% if current_date_filter == '30days' %}selected{% endif %}>Last 30 Days</option>
+                        <option value="90days" {% if current_date_filter == '90days' %}selected{% endif %}>Last 90 Days</option>
+                    </select>
+                </div>
+                
+                <!-- Tag Filter -->
+                {% if all_tags %}
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Tags:</label>
+                    <select name="tag" multiple style="padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px; min-width: 150px;">
+                        {% for tag in all_tags %}
+                        <option value="{{ tag.name }}" {% if tag.name in current_tag_filter %}selected{% endif %}>
+                            {{ tag.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
+                        Ctrl+Click to select multiple
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Filter Buttons -->
+                <div>
+                    <button type="submit" 
+                            style="padding: 0.5rem 1.5rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Apply Filters
+                    </button>
+                    <a href="{{ url_for('main.view_all_entries') }}"
+                       style="padding: 0.5rem 1rem; color: #6c757d; text-decoration: none; margin-left: 0.5rem;">
+                        Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results Count -->
+    <div style="margin-bottom: 1rem; color: #666;">
+        {% if current_date_filter != 'all' or current_tag_filter %}
+            Showing {{ pagination.total }} entries matching filters
+        {% else %}
+            Showing {{ pagination.total }} entries total
+        {% endif %}
+    </div>
+
+    <!-- Entries List -->
+    {% if entries %}
+        {% for entry in entries %}
+        <div style="border: 1px solid #e0e0e0; padding: 1.5rem; margin: 1rem 0; border-radius: 8px; background: white;">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <h3 style="margin: 0 0 0.5rem 0; color: #333;">
+                    {{ entry.date_created.strftime('%B %d, %Y') }}
+                </h3>
+                <small style="color: #666;">{{ entry.date_created.strftime('%H:%M') }}</small>
+            </div>
+            
+            <div style="margin-bottom: 1rem; line-height: 1.6;">
+                {{ entry.content | replace('\n', '<br>') | safe }}
+            </div>
+            
+            {% if entry.tags %}
+            <div style="margin-bottom: 1rem;">
+                <strong>Tags:</strong>
+                {% for tag in entry.tags %}
+                    <span style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 3px; margin: 0 0.2rem; font-size: 0.9rem;">
+                        {{ tag.name }}
+                    </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if entry.emotion_score %}
+            <div style="padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+                <strong>Emotion Analysis:</strong>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.2rem; color: #28a745;">{{ "%.1f"|format(entry.emotion_score.joy * 100) }}%</div>
+                        <div style="font-size: 0.8rem; color: #666;">Joy</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.2rem; color: #007bff;">{{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%</div>
+                        <div style="font-size: 0.8rem; color: #666;">Sadness</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.2rem; color: #dc3545;">{{ "%.1f"|format(entry.emotion_score.anger * 100) }}%</div>
+                        <div style="font-size: 0.8rem; color: #666;">Anger</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.2rem; color: #ffc107;">{{ "%.1f"|format(entry.emotion_score.fear * 100) }}%</div>
+                        <div style="font-size: 0.8rem; color: #666;">Fear</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.2rem; color: #6f42c1;">{{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%</div>
+                        <div style="font-size: 0.8rem; color: #666;">Surprise</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                <a href="{{ url_for('main.view_entry', entry_id=entry.id) }}" 
+                   style="padding: 0.3rem 0.8rem; background: #007bff; color: white; text-decoration: none; border-radius: 3px; font-size: 0.9rem;">
+                    View
+                </a>
+                <a href="{{ url_for('main.edit_entry', entry_id=entry.id) }}" 
+                   style="padding: 0.3rem 0.8rem; background: #28a745; color: white; text-decoration: none; border-radius: 3px; font-size: 0.9rem;">
+                    Edit
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 3rem; color: #666;">
+            <p>No journal entries yet.</p>
+            <a href="{{ url_for('main.dashboard') }}" style="color: #007bff;">Create your first entry</a>
+        </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div style="display: flex; justify-content: center; margin: 2rem 0; gap: 0.5rem;">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('main.view_all_entries', page=pagination.prev_num) }}"
+               style="padding: 0.5rem 1rem; border: 1px solid #dee2e6; text-decoration: none; border-radius: 4px;">
+                ← Previous
+            </a>
+        {% endif %}
+        
+        {% for page_num in pagination.iter_pages() %}
+            {% if page_num %}
+                <a href="{{ url_for('main.view_all_entries', page=page_num) }}"
+                   style="padding: 0.5rem 1rem; border: 1px solid #dee2e6; text-decoration: none; border-radius: 4px; 
+                          {% if page_num == pagination.page %}background: #007bff; color: white; border-color: #007bff;{% endif %}">
+                    {{ page_num }}
+                </a>
+            {% else %}
+                <span style="padding: 0.5rem 1rem;">...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+            <a href="{{ url_for('main.view_all_entries', page=pagination.next_num) }}"
+               style="padding: 0.5rem 1rem; border: 1px solid #dee2e6; text-decoration: none; border-radius: 4px;">
+                Next →
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
