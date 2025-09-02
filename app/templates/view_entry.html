@@ -1,68 +1,371 @@
 {% extends "base.html" %}
 
+{% block styles %}
+<style>
+    .entry-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    
+    /* Header */
+    .entry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .entry-title {
+        color: var(--dark);
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .btn-edit {
+        padding: 10px 20px;
+        background: var(--primary);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+    
+    .btn-edit:hover {
+        background: #5c4dab;
+    }
+    
+    /* Entry Content */
+    .entry-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+    }
+    
+    .entry-date {
+        color: #666;
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .entry-content {
+        line-height: 1.7;
+        margin-bottom: 2rem;
+        white-space: pre-line;
+        font-size: 1.1rem;
+    }
+    
+    /* Tags */
+    .entry-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .entry-tag {
+        background: #e9ecef;
+        color: #495057;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+    
+    /* Emotion Analysis */
+    .emotion-analysis {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    
+    .emotion-title {
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: var(--dark);
+        font-size: 1.2rem;
+    }
+    
+    .emotion-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+    }
+    
+    .emotion-item {
+        text-align: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s;
+    }
+    
+    .emotion-item:hover {
+        transform: translateY(-3px);
+    }
+    
+    .emotion-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .emotion-label {
+        font-size: 0.9rem;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+    
+    .joy { color: #28a745; }
+    .sadness { color: #007bff; }
+    .anger { color: #dc3545; }
+    .fear { color: #ffc107; }
+    .surprise { color: #6f42c1; }
+    
+    /* Back Link */
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .back-link:hover {
+        gap: 12px;
+    }
+    
+    /* Emotion Visualization */
+    .emotion-visualization {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .visualization-title {
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--dark);
+    }
+    
+    .emotion-bars {
+        display: flex;
+        height: 30px;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    
+    .emotion-bar {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+    
+    .emotion-legend {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .entry-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .emotion-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .emotion-legend {
+            flex-direction: column;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .emotion-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .entry-content {
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="max-width: 800px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h2>Journal Entry</h2>
-        <a href="{{ url_for('main.edit_entry', entry_id=entry.id) }}" 
-           style="padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">
-            Edit Entry
+<div class="entry-container">
+    <!-- Header -->
+    <div class="entry-header">
+        <h2 class="entry-title">Journal Entry</h2>
+        <a href="{{ url_for('main.edit_entry', entry_id=entry.id) }}" class="btn-edit">
+            ✏️ Edit Entry
         </a>
     </div>
     
-    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <p style="color: #666; margin-bottom: 1.5rem;">
-            {{ entry.date_created.strftime('%B %d, %Y at %H:%M') }}
-        </p>
-        
-        <div style="margin-bottom: 2rem; line-height: 1.6;">
-            {{ entry.content | replace('\n', '<br>') | safe }}
+    <!-- Entry Content -->
+    <div class="entry-card">
+        <div class="entry-date">
+            📅 {{ entry.date_created.strftime('%B %d, %Y') }} at {{ entry.date_created.strftime('%H:%M') }}
         </div>
         
+        <div class="entry-content">{{ entry.content }}</div>
+        
         {% if entry.tags %}
-        <div style="margin-bottom: 2rem;">
-            <strong>Tags:</strong>
+        <div class="entry-tags">
             {% for tag in entry.tags %}
-                <span style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 3px; margin: 0 0.2rem;">
-                    {{ tag.name }}
-                </span>
+            <span class="entry-tag">{{ tag.name }}</span>
             {% endfor %}
         </div>
         {% endif %}
         
         {% if entry.emotion_score %}
-        <div style="padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-            <h4>Emotion Analysis:</h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
-                <div style="text-align: center;">
-                    <div style="font-size: 1.5rem; color: #28a745;">{{ "%.1f"|format(entry.emotion_score.joy * 100) }}%</div>
-                    <div style="font-size: 0.9rem; color: #666;">Joy</div>
+        <!-- Emotion Analysis -->
+        <div class="emotion-analysis">
+            <h3 class="emotion-title">Emotion Analysis</h3>
+            <div class="emotion-grid">
+                <div class="emotion-item">
+                    <div class="emotion-value joy">{{ "%.1f"|format(entry.emotion_score.joy * 100) }}%</div>
+                    <div class="emotion-label">Joy</div>
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.5rem; color: #007bff;">{{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%</div>
-                    <div style="font-size: 0.9rem; color: #666;">Sadness</div>
+                <div class="emotion-item">
+                    <div class="emotion-value sadness">{{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%</div>
+                    <div class="emotion-label">Sadness</div>
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.5rem; color: #dc3545;">{{ "%.1f"|format(entry.emotion_score.anger * 100) }}%</div>
-                    <div style="font-size: 0.9rem; color: #666;">Anger</div>
+                <div class="emotion-item">
+                    <div class="emotion-value anger">{{ "%.1f"|format(entry.emotion_score.anger * 100) }}%</div>
+                    <div class="emotion-label">Anger</div>
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.5rem; color: #ffc107;">{{ "%.1f"|format(entry.emotion_score.fear * 100) }}%</div>
-                    <div style="font-size: 0.9rem; color: #666;">Fear</div>
+                <div class="emotion-item">
+                    <div class="emotion-value fear">{{ "%.1f"|format(entry.emotion_score.fear * 100) }}%</div>
+                    <div class="emotion-label">Fear</div>
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.5rem; color: #6f42c1;">{{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%</div>
-                    <div style="font-size: 0.9rem; color: #666;">Surprise</div>
+                <div class="emotion-item">
+                    <div class="emotion-value surprise">{{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%</div>
+                    <div class="emotion-label">Surprise</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Emotion Visualization -->
+        <div class="emotion-visualization">
+            <h4 class="visualization-title">Emotion Distribution</h4>
+            <div class="emotion-bars">
+                <div class="emotion-bar" style="width: {{ entry.emotion_score.joy * 100 }}%; background: #28a745;">
+                    {% if entry.emotion_score.joy * 100 > 10 %}😊{% endif %}
+                </div>
+                <div class="emotion-bar" style="width: {{ entry.emotion_score.sadness * 100 }}%; background: #007bff;">
+                    {% if entry.emotion_score.sadness * 100 > 10 %}😢{% endif %}
+                </div>
+                <div class="emotion-bar" style="width: {{ entry.emotion_score.anger * 100 }}%; background: #dc3545;">
+                    {% if entry.emotion_score.anger * 100 > 10 %}😠{% endif %}
+                </div>
+                <div class="emotion-bar" style="width: {{ entry.emotion_score.fear * 100 }}%; background: #ffc107;">
+                    {% if entry.emotion_score.fear * 100 > 10 %}😨{% endif %}
+                </div>
+                <div class="emotion-bar" style="width: {{ entry.emotion_score.surprise * 100 }}%; background: #6f42c1;">
+                    {% if entry.emotion_score.surprise * 100 > 10 %}😲{% endif %}
+                </div>
+            </div>
+            
+            <div class="emotion-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #28a745;"></div>
+                    <span>Joy: {{ "%.1f"|format(entry.emotion_score.joy * 100) }}%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #007bff;"></div>
+                    <span>Sadness: {{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #dc3545;"></div>
+                    <span>Anger: {{ "%.1f"|format(entry.emotion_score.anger * 100) }}%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffc107;"></div>
+                    <span>Fear: {{ "%.1f"|format(entry.emotion_score.fear * 100) }}%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #6f42c1;"></div>
+                    <span>Surprise: {{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%</span>
                 </div>
             </div>
         </div>
         {% endif %}
     </div>
     
-    <div style="margin-top: 2rem;">
-        <a href="{{ url_for('main.dashboard') }}" style="color: #007bff; text-decoration: none;">
-            ← Back to Dashboard
-        </a>
-    </div>
+    <!-- Back Link -->
+    <a href="{{ url_for('main.dashboard') }}" class="back-link">
+        ← Back to Dashboard
+    </a>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add subtle animation to emotion items
+        const emotionItems = document.querySelectorAll('.emotion-item');
+        emotionItems.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                item.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                item.style.opacity = '1';
+                item.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+        
+        // Add animation to emotion bars
+        const emotionBars = document.querySelectorAll('.emotion-bar');
+        emotionBars.forEach(bar => {
+            const originalWidth = bar.style.width;
+            bar.style.width = '0%';
+            
+            setTimeout(() => {
+                bar.style.transition = 'width 1s ease-in-out';
+                bar.style.width = originalWidth;
+            }, 500);
+        });
+    });
+</script>
 {% endblock %}

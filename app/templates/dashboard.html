@@ -1,99 +1,557 @@
 {% extends "base.html" %}
 
-{% block content %}
-<h2>Your Mood Journal</h2>
-<!-- Improved Visualization Section -->
-<div class="charts-row">
-    <!-- Weekly Summary Cards -->
-    <div class="chart-container">
-        <h3>📊 Weekly Summary</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-            <div style="text-align: center; padding: 1rem; background: #e8f5e8; border-radius: 8px;">
-                <div style="font-size: 2rem; font-weight: bold; color: #28a745;">
-                    {{ summary_stats.current_week.entries }}
-                </div>
-                <div style="font-size: 0.9rem;">Entries This Week</div>
-                {% if summary_stats.change.entries != 0 %}
-                <div style="font-size: 0.8rem; color: {% if summary_stats.change.entries > 0 %}#28a745{% else %}#dc3545{% endif %};">
-                    {{ summary_stats.change.entries|abs }}% {% if summary_stats.change.entries > 0 %}↑{% else %}↓{% endif %}
-                </div>
-                {% endif %}
-            </div>
-            
-            <div style="text-align: center; padding: 1rem; background: #e8f5e8; border-radius: 8px;">
-                <div style="font-size: 2rem; font-weight: bold; color: #28a745;">
-                    {{ "%.1f"|format(summary_stats.current_week.avg_joy) }}%
-                </div>
-                <div style="font-size: 0.9rem;">Average Joy</div>
-                {% if summary_stats.change.avg_joy != 0 %}
-                <div style="font-size: 0.8rem; color: {% if summary_stats.change.avg_joy > 0 %}#28a745{% else %}#dc3545{% endif %};">
-                    {{ summary_stats.change.avg_joy|abs }}% {% if summary_stats.change.avg_joy > 0 %}↑{% else %}↓{% endif %}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+{% block styles %}
+<style>
+    /* Dashboard Layout */
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .dashboard-title {
+        color: var(--dark);
+        font-size: 2.2rem;
+        font-weight: 700;
+    }
+    
+    .dashboard-subtitle {
+        color: #666;
+        margin-top: 0.5rem;
+    }
+    
+    .btn-add-entry {
+        background: var(--primary);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 15px rgba(109, 93, 202, 0.3);
+        transition: all 0.3s;
+    }
+    
+    .btn-add-entry:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(109, 93, 202, 0.4);
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        text-align: center;
+    }
+    
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin: 0.5rem 0;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .stat-change {
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .change-positive {
+        color: var(--success);
+    }
+    
+    .change-negative {
+        color: var(--danger);
+    }
+    
+    /* Charts Layout */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .chart-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--dark);
+    }
+    
+    /* Emotion Trends */
+    .emotion-trends {
+        display: grid;
+        gap: 1.2rem;
+    }
+    
+    .emotion-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .emotion-label {
+        font-weight: 600;
+        min-width: 80px;
+        text-transform: capitalize;
+        color: var(--dark);
+    }
+    
+    .emotion-sparkline {
+        flex: 1;
+        height: 40px;
+    }
+    
+    .emotion-value {
+        min-width: 50px;
+        text-align: right;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    
+    /* Dominant Emotions */
+    .dominant-emotions {
+        display: flex;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+    
+    .dominant-emotion-day {
+        text-align: center;
+        padding: 0.8rem 0.5rem;
+        min-width: 70px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .dominant-date {
+        font-size: 0.75rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+    }
+    
+    .dominant-emoji {
+        font-size: 1.8rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    .dominant-name {
+        font-size: 0.7rem;
+        color: #666;
+        text-transform: capitalize;
+    }
+    
+    /* Trend Analysis */
+    .trend-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .trend-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.2rem;
+        text-align: center;
+    }
+    
+    .trend-card h4 {
+        margin-bottom: 0.8rem;
+        color: var(--dark);
+        text-transform: capitalize;
+    }
+    
+    .trend-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+    
+    .trend-up {
+        color: var(--success);
+    }
+    
+    .trend-down {
+        color: var(--danger);
+    }
+    
+    .trend-comparison {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Journal Entry Form */
+    .entry-form-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--dark);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(109, 93, 202, 0.2);
+    }
+    
+    textarea.form-control {
+        min-height: 120px;
+        resize: vertical;
+    }
+    
+    .btn-submit {
+        width: 100%;
+        padding: 12px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-submit:hover {
+        background: #5c4dab;
+    }
+    
+    /* Export Section */
+    .export-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+    }
+    
+    .btn-export {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: var(--success);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .btn-export:hover {
+        background: #3d8b40;
+    }
+    
+    /* Entries Section */
+    .entries-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .entries-grid {
+        display: grid;
+        gap: 1.5rem;
+    }
+    
+    .entry-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        position: relative;
+    }
+    
+    .entry-date {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 0.8rem;
+    }
+    
+    .entry-content {
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+    
+    .entry-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .entry-tag {
+        background: #e9ecef;
+        color: #495057;
+        padding: 0.3rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+    }
+    
+    .entry-emotions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .emotion-score {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    
+    .emotion-score-value {
+        font-weight: 600;
+    }
+    
+    .entry-actions {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        display: flex;
+        gap: 0.8rem;
+    }
+    
+    .entry-action {
+        color: #6c757d;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.3s;
+    }
+    
+    .entry-action:hover {
+        color: var(--primary);
+    }
+    
+    .view-all-link {
+        display: inline-block;
+        margin-top: 1.5rem;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .view-all-link:hover {
+        text-decoration: underline;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #666;
+    }
+    
+    .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .emotion-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .emotion-sparkline {
+            width: 100%;
+        }
+        
+        .dominant-emotions {
+            justify-content: center;
+        }
+        
+        .trend-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
 
-    <!-- Emotion Sparklines -->
-    <!-- <div class="chart-container">
-        <h3>📈 Emotion Trends</h3>
-        <div style="display: grid; gap: 1.5rem; margin-top: 1rem;">
-            {% for emotion in ['joy', 'sadness', 'anger', 'fear', 'surprise'] %}
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <div style="font-weight: bold; min-width: 70px; text-transform: capitalize; color: 
-                    {% if emotion == 'joy' %}#28a745
-                    {% elif emotion == 'sadness' %}#007bff
-                    {% elif emotion == 'anger' %}#dc3545
-                    {% elif emotion == 'fear' %}#ffc107
-                    {% else %}#6f42c1
-                    {% endif %}">
-                    {{ emotion }}
-                </div>
-                <div style="flex: 1; height: 40px; position: relative;">
-                    <canvas id="sparkline-{{ emotion }}" width="200" height="40"></canvas>
-                </div>
-                <div style="min-width: 40px; text-align: right; font-weight: bold;">
-                    {{ "%.1f"|format(sparkline_data[emotion][-1] if sparkline_data[emotion] else 0) }}%
-                </div>
-            </div>
+{% block content %}
+<div class="dashboard-header">
+    <div>
+        <h2 class="dashboard-title">Your Mood Journal</h2>
+        <p class="dashboard-subtitle">Track your emotional journey and discover patterns</p>
+    </div>
+    <a href="#entry-form" class="btn-add-entry">+ New Entry</a>
+</div>
+
+<!-- Stats Summary -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-value">{{ summary_stats.current_week.entries }}</div>
+        <div class="stat-label">Entries This Week</div>
+        {% if summary_stats.change.entries != 0 %}
+        <div class="stat-change {% if summary_stats.change.entries > 0 %}change-positive{% else %}change-negative{% endif %}">
+            {{ summary_stats.change.entries|abs }}% {% if summary_stats.change.entries > 0 %}↑{% else %}↓{% endif %} from last week
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">😊</div>
+        <div class="stat-value">{{ "%.1f"|format(summary_stats.current_week.avg_joy) }}%</div>
+        <div class="stat-label">Average Joy</div>
+        {% if summary_stats.change.avg_joy != 0 %}
+        <div class="stat-change {% if summary_stats.change.avg_joy > 0 %}change-positive{% else %}change-negative{% endif %}">
+            {{ summary_stats.change.avg_joy|abs }}% {% if summary_stats.change.avg_joy > 0 %}↑{% else %}↓{% endif %} from last week
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-value">{{ entry_count }}</div>
+        <div class="stat-label">Total Entries</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-value">
+            {% for i in range(sparkline_data.dates|length) %}
+                {% set dominant = sparkline_data.dominant_emotions[i] %}    
+                {{ dominant | capitalize }}            
             {% endfor %}
         </div>
-    </div> -->
+        <div class="stat-label">Dominant Emotion</div>
+    </div>
 </div>
 
-<!-- Charts Row -->
-  {% if dates or emotion_distribution %}
-<div class="charts-row">
-  <!-- Mood Trends Chart -->
+<!-- Charts Grid -->
+<div class="charts-grid">
+    <!-- Mood Trends Chart -->
     {% if dates %}
-    <div class="chart-container" style="width: 85%;">
-        <h3>Your Mood Trends (Last 7 Days)</h3>
-        <canvas id="moodChart" width="400" height="200"></canvas>
+    <div class="chart-container">
+        <div class="chart-header">
+            <h3 class="chart-title">Mood Trends (Last 7 Days)</h3>
+        </div>
+        <canvas id="moodChart" width="400" height="250"></canvas>
     </div>
     {% endif %}
 
-    <!-- Emotion Distribution Pie Chart -->
+    <!-- Emotion Distribution -->
     {% if emotion_distribution %}
-    <div class="chart-container" style="width: 85%;">
-        <h3>Overall Emotion Distribution</h3>
+    <div class="chart-container">
+        <div class="chart-header">
+            <h3 class="chart-title">Emotion Distribution</h3>
+        </div>
         <p>Based on {{ entry_count }} journal entries</p>
-        <canvas id="emotionPieChart" width="400" height="400"></canvas>
+        <canvas id="emotionPieChart" width="400" height="250"></canvas>
     </div>
     {% endif %}
 </div>
-{% endif %}
+
+<!-- Emotion Trends -->
+<div class="chart-container">
+    <div class="chart-header">
+        <h3 class="chart-title">Emotion Trends</h3>
+    </div>
+    <div class="emotion-trends">
+        {% for emotion in ['joy', 'sadness', 'anger', 'fear', 'surprise'] %}
+        <div class="emotion-row">
+            <span class="emotion-label">{{ emotion }}</span>
+            <div class="emotion-sparkline">
+                <canvas id="sparkline-{{ emotion }}" width="200" height="40"></canvas>
+            </div>
+            <span class="emotion-value">{{ "%.1f"|format(sparkline_data[emotion][-1] if sparkline_data[emotion] else 0) }}%</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
 
 <!-- Dominant Emotions -->
 {% if sparkline_data.dates %}
-<div class="chart-container"style="width: 85%;">
-    <h3>🎯 Daily Dominant Emotions</h3>
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
+<div class="chart-container">
+    <div class="chart-header">
+        <h3 class="chart-title">Daily Dominant Emotions</h3>
+    </div>
+    <div class="dominant-emotions">
         {% for i in range(sparkline_data.dates|length) %}
-        <div style="text-align: center; padding: 0.5rem; min-width: 60px;">
-            <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.25rem;">
+        <div class="dominant-emotion-day">
+            <div class="dominant-date">
                 {{ sparkline_data.dates[i].split('-')[-1] }}/{{ sparkline_data.dates[i].split('-')[1] }}
             </div>
-            <div style="font-size: 1.5rem;">
+            <div class="dominant-emoji">
                 {% set emotion = sparkline_data.dominant_emotions[i] %}
                 {% if emotion == 'joy' %}😊
                 {% elif emotion == 'sadness' %}😢
@@ -102,7 +560,7 @@
                 {% else %}😲
                 {% endif %}
             </div>
-            <div style="font-size: 0.7rem; color: #666; text-transform: capitalize;">
+            <div class="dominant-name">
                 {{ emotion }}
             </div>
         </div>
@@ -111,13 +569,15 @@
 </div>
 {% endif %}
 
-<!-- NEW: Weekly Trend Analysis -->
+<!-- Weekly Trend Analysis -->
 {% if trend_analysis and trend_analysis|length > 0 %}
-<div class="chart-container" style="width: 85%;">
-    <h3>📈 Weekly Progress Report</h3>
+<div class="chart-container">
+    <div class="chart-header">
+        <h3 class="chart-title">Weekly Progress Report</h3>
+    </div>
     <p>Week of {{ current_week_start.strftime('%b %d') }} - {{ current_week_end.strftime('%b %d') }} vs Previous Week</p>
     
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+    <div class="trend-grid">
         {% for emotion, data in trend_analysis.items() %}
         <div class="trend-card">
             <h4>{{ emotion }}</h4>
@@ -153,41 +613,37 @@
     </div>
 </div>
 {% else %}
-    <div class="chart-container">
-        <h3>📈 Weekly Progress Report</h3>
-        <p>Not enough data yet for trend analysis. Create more entries to see your progress!</p>
+<div class="chart-container">
+    <div class="chart-header">
+        <h3 class="chart-title">Weekly Progress Report</h3>
     </div>
+    <p>Not enough data yet for trend analysis. Create more entries to see your progress!</p>
+</div>
 {% endif %}
 
 <!-- Journal Entry Form -->
-<div style="margin-bottom: 2rem; padding: 1rem; border: 1px solid #ccc; border-radius: 5px;">
-    <h3>New Journal Entry</h3>
+<div id="entry-form" class="entry-form-container">
+    <h3 class="chart-title">New Journal Entry</h3>
     <form method="POST" action="{{ url_for('main.dashboard') }}">
-        <div>
+        <div class="form-group">
             <label for="content">How are you feeling today?</label>
-            <textarea id="content" name="content" rows="5" required 
-                      style="width: 95%; padding: 0.5rem; margin: 0.5rem 0;"></textarea>
+            <textarea id="content" name="content" class="form-control" rows="5" required></textarea>
         </div>
-        <div>
-            <label for="tags">Tags (comma-separated, e.g., work, family, health):</label>
-            <input type="text" id="tags" name="tags" 
-                   style="width: 95%; padding: 0.5rem; margin: 0.5rem 0;">
+        <div class="form-group">
+            <label for="tags">Tags (comma-separated, e.g., work, family, health)</label>
+            <input type="text" id="tags" name="tags" class="form-control">
         </div>
-        <button type="submit" style="padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 3px;">
-            Save Entry & Analyze Mood
-        </button>
+        <button type="submit" class="btn-submit">Save Entry & Analyze Mood</button>
     </form>
 </div>
 
 <!-- Export Section -->
-<div class="chart-container" style="width: 85%;">
-    <h3>📤 Export Your Data</h3>
+<div class="export-container">
+    <h3 class="chart-title">Export Your Data</h3>
     <p>Download all your journal entries as a CSV file for your personal records.</p>
     
-    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-        <a href="{{ url_for('main.export_entries') }}" 
-           class="btn btn-primary"
-           style="padding: 0.5rem 1rem; background: #28a745; color: white; text-decoration: none; border-radius: 4px;">
+    <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem;">
+        <a href="{{ url_for('main.export_entries') }}" class="btn-export">
             📄 Export to CSV
         </a>
         
@@ -199,136 +655,73 @@
 
 <!-- Recent Entries -->
 <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h3>Recent Entries</h3>
-        <a href="{{ url_for('main.view_all_entries') }}" 
-           style="padding: 0.3rem 0.8rem; background: #6c757d; color: white; text-decoration: none; border-radius: 3px; font-size: 0.9rem;">
-            View All Entries
-        </a>
+    <div class="entries-header">
+        <h3 class="chart-title">Recent Entries</h3>
+        <a href="{{ url_for('main.view_all_entries') }}" class="view-all-link">View All →</a>
     </div>
+    
+    <div class="entries-grid">
         {% if entries %}
-        {% for entry in entries %}
-            <!-- <div style="border: 1px solid #eee; padding: 1rem; margin: 1rem 0; border-radius: 5px;"> -->
-            <div style="border: 1px solid #eee; padding: 1rem; margin: 1rem 0; border-radius: 5px; position: relative;">
-                <div style="position: absolute; top: 0.5rem; right: 0.5rem; display: flex; gap: 0.5rem;">
-                    <a href="{{ url_for('main.view_entry', entry_id=entry.id) }}" 
-                    style="color: #007bff; text-decoration: none; font-size: 0.9rem;">View</a>
-                    <a href="{{ url_for('main.edit_entry', entry_id=entry.id) }}" 
-                    style="color: #28a745; text-decoration: none; font-size: 0.9rem;">Edit</a>
+            {% for entry in entries %}
+            <div class="entry-card">
+                <div class="entry-actions">
+                    <a href="{{ url_for('main.view_entry', entry_id=entry.id) }}" class="entry-action">View</a>
+                    <a href="{{ url_for('main.edit_entry', entry_id=entry.id) }}" class="entry-action">Edit</a>
                 </div>
                 
-                <!-- <p><strong>{{ entry.date_created.strftime('%Y-%m-%d %H:%M') }}</strong></p>
-                <p>{{ entry.content[:200] }}{% if entry.content|length > 200 %}...{% endif %}</p> -->
-                <!-- ... rest of your entry display ... -->
-                <!-- </div> -->
-                <p><strong>{{ entry.date_created.strftime('%Y-%m-%d %H:%M') }}</strong></p>
-                <p>{{ entry.content }}</p>
+                <div class="entry-date">{{ entry.date_created.strftime('%Y-%m-%d %H:%M') }}</div>
+                <div class="entry-content">{{ entry.content }}</div>
+                
                 {% if entry.tags %}
-                    <p>Tags: 
-                        {% for tag in entry.tags %}
-                            <span style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 3px; margin: 0 0.2rem;">
-                                {{ tag.name }}
-                            </span>
-                        {% endfor %}
-                    </p>
+                <div class="entry-tags">
+                    {% for tag in entry.tags %}
+                    <span class="entry-tag">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
                 {% endif %}
+                
                 {% if entry.emotion_score %}
-                    <p>Emotion Scores: 
-                        Joy: {{ "%.1f"|format(entry.emotion_score.joy * 100) }}%,
-                        Sadness: {{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%,
-                        Anger: {{ "%.1f"|format(entry.emotion_score.anger * 100) }}%,
-                        Fear: {{ "%.1f"|format(entry.emotion_score.fear * 100) }}%,
-                        Surprise: {{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%
-                    </p>
+                <div class="entry-emotions">
+                    <div class="emotion-score">
+                        <span>😊</span>
+                        <span class="emotion-score-value">{{ "%.1f"|format(entry.emotion_score.joy * 100) }}%</span>
+                    </div>
+                    <div class="emotion-score">
+                        <span>😢</span>
+                        <span class="emotion-score-value">{{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%</span>
+                    </div>
+                    <div class="emotion-score">
+                        <span>😠</span>
+                        <span class="emotion-score-value">{{ "%.1f"|format(entry.emotion_score.anger * 100) }}%</span>
+                    </div>
+                    <div class="emotion-score">
+                        <span>😨</span>
+                        <span class="emotion-score-value">{{ "%.1f"|format(entry.emotion_score.fear * 100) }}%</span>
+                    </div>
+                    <div class="emotion-score">
+                        <span>😲</span>
+                        <span class="emotion-score-value">{{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%</span>
+                    </div>
+                </div>
                 {% endif %}
             </div>
-        {% endfor %}
-    {% else %}
-        <p>No journal entries yet. Write your first entry above!</p>
-    {% endif %}
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📝</div>
+            <h3>No journal entries yet</h3>
+            <p>Write your first entry to start tracking your mood journey</p>
+        </div>
+        {% endif %}
+    </div>
 </div>
 
+<!-- JavaScript for Charts -->
 {% if dates %}
-<!-- <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const ctx = document.getElementById('moodChart').getContext('2d');
-        const moodChart = new Chart(ctx, {
-            type: 'bar',  // Changed from 'line' to 'bar'
-            data: {
-                labels: {{ dates | tojson }},
-                datasets: [
-                    {
-                        label: 'Joy',
-                        data: {{ joy_scores | tojson }},
-                        backgroundColor: 'rgba(75, 192, 192, 0.7)', // Changed to backgroundColor
-                        borderColor: 'rgb(75, 192, 192)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Sadness',
-                        data: {{ sadness_scores | tojson }},
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)', // Changed to backgroundColor
-                        borderColor: 'rgb(54, 162, 235)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Anger',
-                        data: {{ anger_scores | tojson }},
-                        backgroundColor: 'rgba(255, 99, 132, 0.7)', // Changed to backgroundColor
-                        borderColor: 'rgb(255, 99, 132)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Fear',
-                        data: {{ fear_scores | tojson }},
-                        backgroundColor: 'rgba(255, 159, 64, 0.7)', // Changed to backgroundColor
-                        borderColor: 'rgb(255, 159, 64)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Surprise',
-                        data: {{ surprise_scores | tojson }},
-                        backgroundColor: 'rgba(153, 102, 255, 0.7)', // Changed to backgroundColor
-                        borderColor: 'rgb(153, 102, 255)',
-                        borderWidth: 1
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Emotion Score (%)'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Date'
-                        }
-                    }
-                },
-                // Added for better bar chart display
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: 'Emotion Scores by Date'
-                    }
-                }
-            }
-        });
-    });
-</script> -->
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Mood Trends Chart
         const ctx = document.getElementById('moodChart').getContext('2d');
         const moodChart = new Chart(ctx, {
             type: 'line',
@@ -339,41 +732,51 @@
                         label: 'Joy',
                         data: {{ joy_scores | tojson }},
                         borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1,
-                        fill: false
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        tension: 0.4,
+                        fill: true
                     },
                     {
                         label: 'Sadness',
                         data: {{ sadness_scores | tojson }},
                         borderColor: 'rgb(54, 162, 235)',
-                        tension: 0.1,
-                        fill: false
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        tension: 0.4,
+                        fill: true
                     },
                     {
                         label: 'Anger',
                         data: {{ anger_scores | tojson }},
                         borderColor: 'rgb(255, 99, 132)',
-                        tension: 0.1,
-                        fill: false
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.4,
+                        fill: true
                     },
                     {
                         label: 'Fear',
                         data: {{ fear_scores | tojson }},
                         borderColor: 'rgb(255, 159, 64)',
-                        tension: 0.1,
-                        fill: false
+                        backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                        tension: 0.4,
+                        fill: true
                     },
                     {
                         label: 'Surprise',
                         data: {{ surprise_scores | tojson }},
                         borderColor: 'rgb(153, 102, 255)',
-                        tension: 0.1,
-                        fill: false
+                        backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
                     }
                 ]
             },
             options: {
                 responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -392,14 +795,9 @@
                 }
             }
         });
-    });
-</script>
-{% endif %}
-
-<!-- NEW: Pie Chart Script -->
-{% if emotion_distribution %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
+        
+        // Emotion Distribution Pie Chart
+        {% if emotion_distribution %}
         const pieCtx = document.getElementById('emotionPieChart').getContext('2d');
         const emotionPieChart = new Chart(pieCtx, {
             type: 'pie',
@@ -414,11 +812,11 @@
                         {{ emotion_distribution.get('surprise', 0) }}
                     ],
                     backgroundColor: [
-                        'rgba(75, 192, 192, 0.8)',    // Joy - Teal
-                        'rgba(54, 162, 235, 0.8)',    // Sadness - Blue
-                        'rgba(255, 99, 132, 0.8)',    // Anger - Red
-                        'rgba(255, 159, 64, 0.8)',    // Fear - Orange
-                        'rgba(153, 102, 255, 0.8)'    // Surprise - Purple
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(255, 159, 64, 0.8)',
+                        'rgba(153, 102, 255, 0.8)'
                     ],
                     borderColor: [
                         'rgb(75, 192, 192)',
@@ -446,67 +844,59 @@
                 }
             }
         });
+        {% endif %}
+        
+        // Sparkline Charts
+        const emotions = ['joy', 'sadness', 'anger', 'fear', 'surprise'];
+        const colors = {
+            'joy': '#28a745',
+            'sadness': '#007bff', 
+            'anger': '#dc3545',
+            'fear': '#ffc107',
+            'surprise': '#6f42c1'
+        };
+        
+        emotions.forEach(emotion => {
+            const canvas = document.getElementById(`sparkline-${emotion}`);
+            if (!canvas) return;
+            
+            const sparklineData = {{ sparkline_data | tojson }};
+            const data = sparklineData[emotion] || [];
+            
+            if (data.length > 0) {
+                new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(() => ''),
+                        datasets: [{
+                            data: data,
+                            borderColor: colors[emotion],
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        },
+                        scales: {
+                            x: { display: false },
+                            y: { 
+                                display: false,
+                                min: 0,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
+        });
     });
 </script>
 {% endif %}
-
-<!-- Sparkline Charts Script -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const emotions = ['joy', 'sadness', 'anger', 'fear', 'surprise'];
-    const colors = {
-        'joy': '#28a745',
-        'sadness': '#007bff', 
-        'anger': '#dc3545',
-        'fear': '#ffc107',
-        'surprise': '#6f42c1'
-    };
-    
-    emotions.forEach(emotion => {
-        const canvas = document.getElementById(`sparkline-${emotion}`);
-        if (!canvas) return;
-        
-        // Get data from JavaScript variable instead of template
-        const sparklineData = {{ sparkline_data | tojson }};
-        const data = sparklineData[emotion] || [];
-        
-        if (data.length > 0) {
-            const ctx = canvas.getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.map(() => ''),
-                    datasets: [{
-                        data: data,
-                        borderColor: colors[emotion],
-                        borderWidth: 2,
-                        fill: false,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { enabled: false }
-                    },
-                    scales: {
-                        x: { display: false },
-                        y: { 
-                            display: false,
-                            min: 0,
-                            max: 100
-                        }
-                    }
-                }
-            });
-        } else {
-            // Show message if no data
-            canvas.parentElement.innerHTML = '<div style="color: #999; font-style: italic;">No data yet</div>';
-        }
-    });
-});
-</script>
-
 {% endblock %}

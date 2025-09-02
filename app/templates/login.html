@@ -1,17 +1,188 @@
 {% extends "base.html" %}
 
+{% block styles %}
+<style>
+    .auth-container {
+        display: flex;
+        min-height: 80vh;
+        align-items: center;
+    }
+    
+    .auth-image {
+        flex: 1;
+        background: url('https://images.unsplash.com/photo-1495195129352-aeb325a55b65?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80') no-repeat center center/cover;
+        border-radius: 12px 0 0 12px;
+        min-height: 500px;
+        display: none;
+    }
+    
+    .auth-form-container {
+        flex: 1;
+        padding: 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        width: 100%;
+        margin: 0 auto;
+    }
+    
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .auth-header h2 {
+        color: var(--primary);
+        font-size: 2.2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .auth-header p {
+        color: #666;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--dark);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(109, 93, 202, 0.2);
+    }
+    
+    .btn-auth {
+        width: 100%;
+        padding: 12px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-auth:hover {
+        background: #5c4dab;
+        transform: translateY(-2px);
+    }
+    
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: #666;
+    }
+    
+    .auth-footer a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+    
+    .password-toggle {
+        position: relative;
+    }
+    
+    .toggle-password {
+        position: absolute;
+        right: 12px;
+        top: 40px;
+        background: none;
+        border: none;
+        color: #999;
+        cursor: pointer;
+    }
+    
+    /* Responsive Design */
+    @media (min-width: 768px) {
+        .auth-image {
+            display: block;
+        }
+        
+        .auth-container {
+            gap: 2rem;
+        }
+        
+        .auth-form-container {
+            border-radius: 0 12px 12px 0;
+        }
+    }
+    
+    @media (max-width: 767px) {
+        .auth-form-container {
+            box-shadow: none;
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h2>Login</h2>
-<form method="POST" action="{{ url_for('auth.login') }}">
-    <div>
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required>
+<div class="container">
+    <div class="auth-container">
+        <div class="auth-image"></div>
+        <div class="auth-form-container">
+            <div class="auth-header">
+                <h2>Login to Your Account</h2>
+                <p>Welcome back! Please enter your details</p>
+            </div>
+            
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-control" required>
+                </div>
+                
+                <div class="form-group password-toggle">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" required>
+                    <button type="button" class="toggle-password" aria-label="Toggle password visibility">👁️</button>
+                </div>
+                
+                <button type="submit" class="btn-auth">Login</button>
+            </form>
+            
+            <div class="auth-footer">
+                <p>Don't have an account? <a href="{{ url_for('auth.register') }}">Register here</a></p>
+            </div>
+        </div>
     </div>
-    <div>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
-    </div>
-    <button type="submit">Login</button>
-</form>
-<p>Don't have an account? <a href="{{ url_for('auth.register') }}">Register here</a>.</p>
+</div>
+
+<script>
+    // Toggle password visibility
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const passwordInput = this.previousElementSibling;
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Toggle eye icon
+            this.textContent = type === 'password' ? '👁️' : '🔒';
+        });
+    });
+</script>
 {% endblock %}

@@ -1,66 +1,429 @@
 {% extends "base.html" %}
 
+{% block styles %}
+<style>
+    .entries-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    
+    /* Header */
+    .entries-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .entries-title {
+        color: var(--dark);
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .btn-back {
+        padding: 10px 20px;
+        background: var(--dark);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+    
+    .btn-back:hover {
+        background: #3d434f;
+    }
+    
+    /* Filter Section */
+    .filter-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+    }
+    
+    .filter-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--dark);
+        margin: 0 0 1rem 0;
+    }
+    
+    .filter-form {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .filter-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--dark);
+    }
+    
+    .filter-select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        background: white;
+    }
+    
+    .filter-select[multiple] {
+        height: 100px;
+    }
+    
+    .filter-hint {
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 0.3rem;
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+    }
+    
+    .btn-filter {
+        padding: 10px 20px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-filter:hover {
+        background: #5c4dab;
+    }
+    
+    .btn-clear {
+        color: #6c757d;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+    
+    .btn-clear:hover {
+        color: var(--primary);
+    }
+    
+    /* Results Count */
+    .results-count {
+        color: #666;
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+    }
+    
+    /* Entries List */
+    .entries-list {
+        display: grid;
+        gap: 1.5rem;
+    }
+    
+    .entry-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        position: relative;
+    }
+    
+    .entry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .entry-date {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--dark);
+        margin: 0;
+    }
+    
+    .entry-time {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .entry-content {
+        line-height: 1.6;
+        margin-bottom: 1.2rem;
+        white-space: pre-line;
+    }
+    
+    .entry-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.2rem;
+    }
+    
+    .entry-tag {
+        background: #e9ecef;
+        color: #495057;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+    
+    .entry-emotions {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.2rem;
+    }
+    
+    .emotion-title {
+        font-weight: 600;
+        margin-bottom: 0.8rem;
+        color: var(--dark);
+    }
+    
+    .emotion-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 0.8rem;
+    }
+    
+    .emotion-item {
+        text-align: center;
+    }
+    
+    .emotion-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 0.2rem;
+    }
+    
+    .emotion-label {
+        font-size: 0.8rem;
+        color: #666;
+    }
+    
+    .joy { color: #28a745; }
+    .sadness { color: #007bff; }
+    .anger { color: #dc3545; }
+    .fear { color: #ffc107; }
+    .surprise { color: #6f42c1; }
+    
+    .entry-actions {
+        display: flex;
+        gap: 0.8rem;
+    }
+    
+    .btn-view {
+        padding: 0.5rem 1rem;
+        background: var(--primary);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+    }
+    
+    .btn-view:hover {
+        background: #5c4dab;
+    }
+    
+    .btn-edit {
+        padding: 0.5rem 1rem;
+        background: var(--success);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+    }
+    
+    .btn-edit:hover {
+        background: #3d8b40;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .empty-text {
+        color: #666;
+        margin-bottom: 1.5rem;
+    }
+    
+    .empty-link {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .empty-link:hover {
+        text-decoration: underline;
+    }
+    
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 2.5rem 0;
+        flex-wrap: wrap;
+    }
+    
+    .pagination-link {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ddd;
+        text-decoration: none;
+        border-radius: 6px;
+        color: var(--dark);
+        transition: all 0.3s;
+    }
+    
+    .pagination-link:hover {
+        background: #f8f9fa;
+    }
+    
+    .pagination-current {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    
+    .pagination-ellipsis {
+        padding: 0.5rem 0.5rem;
+        color: #6c757d;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .entries-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .filter-form {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .filter-group {
+            width: 100%;
+        }
+        
+        .filter-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        
+        .entry-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .emotion-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .emotion-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .entry-actions {
+            flex-direction: column;
+        }
+        
+        .btn-view, .btn-edit {
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div style="max-width: 1000px; margin: 0 auto;">
+<div class="entries-container">
     <!-- Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h2>All Journal Entries</h2>
-        <a href="{{ url_for('main.dashboard') }}" 
-           style="padding: 0.5rem 1rem; background: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
+    <div class="entries-header">
+        <h2 class="entries-title">All Journal Entries</h2>
+        <a href="{{ url_for('main.dashboard') }}" class="btn-back">
             ← Back to Dashboard
         </a>
     </div>
 
     <!-- Filter Form -->
-    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
-        <h3 style="margin: 0 0 1rem 0;">Filter Entries</h3>
-        <form method="GET" action="{{ url_for('main.view_all_entries') }}">
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: end;">
-                <!-- Date Filter -->
-                <div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Time Period:</label>
-                    <select name="date_filter" style="padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px;">
-                        <option value="all" {% if current_date_filter == 'all' %}selected{% endif %}>All Time</option>
-                        <option value="7days" {% if current_date_filter == '7days' %}selected{% endif %}>Last 7 Days</option>
-                        <option value="30days" {% if current_date_filter == '30days' %}selected{% endif %}>Last 30 Days</option>
-                        <option value="90days" {% if current_date_filter == '90days' %}selected{% endif %}>Last 90 Days</option>
-                    </select>
-                </div>
-                
-                <!-- Tag Filter -->
-                {% if all_tags %}
-                <div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Tags:</label>
-                    <select name="tag" multiple style="padding: 0.5rem; border: 1px solid #ced4da; border-radius: 4px; min-width: 150px;">
-                        {% for tag in all_tags %}
-                        <option value="{{ tag.name }}" {% if tag.name in current_tag_filter %}selected{% endif %}>
-                            {{ tag.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
-                        Ctrl+Click to select multiple
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- Filter Buttons -->
-                <div>
-                    <button type="submit" 
-                            style="padding: 0.5rem 1.5rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        Apply Filters
-                    </button>
-                    <a href="{{ url_for('main.view_all_entries') }}"
-                       style="padding: 0.5rem 1rem; color: #6c757d; text-decoration: none; margin-left: 0.5rem;">
-                        Clear
-                    </a>
-                </div>
+    <div class="filter-container">
+        <h3 class="filter-title">Filter Entries</h3>
+        <form method="GET" action="{{ url_for('main.view_all_entries') }}" class="filter-form">
+            <!-- Date Filter -->
+            <div class="filter-group">
+                <label class="filter-label">Time Period</label>
+                <select name="date_filter" class="filter-select">
+                    <option value="all" {% if current_date_filter == 'all' %}selected{% endif %}>All Time</option>
+                    <option value="7days" {% if current_date_filter == '7days' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="30days" {% if current_date_filter == '30days' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="90days" {% if current_date_filter == '90days' %}selected{% endif %}>Last 90 Days</option>
+                </select>
+            </div>
+            
+            <!-- Tag Filter -->
+            {% if all_tags %}
+            <div class="filter-group">
+                <label class="filter-label">Tags</label>
+                <select name="tag" multiple class="filter-select">
+                    {% for tag in all_tags %}
+                    <option value="{{ tag.name }}" {% if tag.name in current_tag_filter %}selected{% endif %}>
+                        {{ tag.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="filter-hint">Ctrl+Click to select multiple tags</div>
+            </div>
+            {% endif %}
+            
+            <!-- Filter Actions -->
+            <div class="filter-actions">
+                <button type="submit" class="btn-filter">Apply Filters</button>
+                <a href="{{ url_for('main.view_all_entries') }}" class="btn-clear">Clear</a>
             </div>
         </form>
     </div>
 
     <!-- Results Count -->
-    <div style="margin-bottom: 1rem; color: #666;">
+    <div class="results-count">
         {% if current_date_filter != 'all' or current_tag_filter %}
             Showing {{ pagination.total }} entries matching filters
         {% else %}
@@ -69,103 +432,99 @@
     </div>
 
     <!-- Entries List -->
-    {% if entries %}
-        {% for entry in entries %}
-        <div style="border: 1px solid #e0e0e0; padding: 1.5rem; margin: 1rem 0; border-radius: 8px; background: white;">
-            <div style="display: flex; justify-content: space-between; align-items: start;">
-                <h3 style="margin: 0 0 0.5rem 0; color: #333;">
-                    {{ entry.date_created.strftime('%B %d, %Y') }}
-                </h3>
-                <small style="color: #666;">{{ entry.date_created.strftime('%H:%M') }}</small>
-            </div>
-            
-            <div style="margin-bottom: 1rem; line-height: 1.6;">
-                {{ entry.content | replace('\n', '<br>') | safe }}
-            </div>
-            
-            {% if entry.tags %}
-            <div style="margin-bottom: 1rem;">
-                <strong>Tags:</strong>
-                {% for tag in entry.tags %}
-                    <span style="background: #e9ecef; padding: 0.2rem 0.5rem; border-radius: 3px; margin: 0 0.2rem; font-size: 0.9rem;">
-                        {{ tag.name }}
-                    </span>
-                {% endfor %}
-            </div>
-            {% endif %}
-            
-            {% if entry.emotion_score %}
-            <div style="padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-                <strong>Emotion Analysis:</strong>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem; margin-top: 0.5rem;">
-                    <div style="text-align: center;">
-                        <div style="font-size: 1.2rem; color: #28a745;">{{ "%.1f"|format(entry.emotion_score.joy * 100) }}%</div>
-                        <div style="font-size: 0.8rem; color: #666;">Joy</div>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 1.2rem; color: #007bff;">{{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%</div>
-                        <div style="font-size: 0.8rem; color: #666;">Sadness</div>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 1.2rem; color: #dc3545;">{{ "%.1f"|format(entry.emotion_score.anger * 100) }}%</div>
-                        <div style="font-size: 0.8rem; color: #666;">Anger</div>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 1.2rem; color: #ffc107;">{{ "%.1f"|format(entry.emotion_score.fear * 100) }}%</div>
-                        <div style="font-size: 0.8rem; color: #666;">Fear</div>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 1.2rem; color: #6f42c1;">{{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%</div>
-                        <div style="font-size: 0.8rem; color: #666;">Surprise</div>
+    <div class="entries-list">
+        {% if entries %}
+            {% for entry in entries %}
+            <div class="entry-card">
+                <div class="entry-header">
+                    <h3 class="entry-date">{{ entry.date_created.strftime('%B %d, %Y') }}</h3>
+                    <div class="entry-time">{{ entry.date_created.strftime('%H:%M') }}</div>
+                </div>
+                
+                <div class="entry-content">{{ entry.content }}</div>
+                
+                {% if entry.tags %}
+                <div class="entry-tags">
+                    {% for tag in entry.tags %}
+                    <span class="entry-tag">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if entry.emotion_score %}
+                <div class="entry-emotions">
+                    <div class="emotion-title">Emotion Analysis</div>
+                    <div class="emotion-grid">
+                        <div class="emotion-item">
+                            <div class="emotion-value joy">{{ "%.1f"|format(entry.emotion_score.joy * 100) }}%</div>
+                            <div class="emotion-label">Joy</div>
+                        </div>
+                        <div class="emotion-item">
+                            <div class="emotion-value sadness">{{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%</div>
+                            <div class="emotion-label">Sadness</div>
+                        </div>
+                        <div class="emotion-item">
+                            <div class="emotion-value anger">{{ "%.1f"|format(entry.emotion_score.anger * 100) }}%</div>
+                            <div class="emotion-label">Anger</div>
+                        </div>
+                        <div class="emotion-item">
+                            <div class="emotion-value fear">{{ "%.1f"|format(entry.emotion_score.fear * 100) }}%</div>
+                            <div class="emotion-label">Fear</div>
+                        </div>
+                        <div class="emotion-item">
+                            <div class="emotion-value surprise">{{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%</div>
+                            <div class="emotion-label">Surprise</div>
+                        </div>
                     </div>
                 </div>
+                {% endif %}
+                
+                <div class="entry-actions">
+                    <a href="{{ url_for('main.view_entry', entry_id=entry.id) }}" class="btn-view">View Details</a>
+                    <a href="{{ url_for('main.edit_entry', entry_id=entry.id) }}" class="btn-edit">Edit Entry</a>
+                </div>
             </div>
-            {% endif %}
-            
-            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-                <a href="{{ url_for('main.view_entry', entry_id=entry.id) }}" 
-                   style="padding: 0.3rem 0.8rem; background: #007bff; color: white; text-decoration: none; border-radius: 3px; font-size: 0.9rem;">
-                    View
-                </a>
-                <a href="{{ url_for('main.edit_entry', entry_id=entry.id) }}" 
-                   style="padding: 0.3rem 0.8rem; background: #28a745; color: white; text-decoration: none; border-radius: 3px; font-size: 0.9rem;">
-                    Edit
-                </a>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📝</div>
+                <h3>No journal entries found</h3>
+                <p class="empty-text">
+                    {% if current_date_filter != 'all' or current_tag_filter %}
+                        No entries match your current filters. Try adjusting your filters.
+                    {% else %}
+                        You haven't created any journal entries yet.
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('main.dashboard') }}" class="empty-link">Create your first entry</a>
             </div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <div style="text-align: center; padding: 3rem; color: #666;">
-            <p>No journal entries yet.</p>
-            <a href="{{ url_for('main.dashboard') }}" style="color: #007bff;">Create your first entry</a>
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 
     <!-- Pagination -->
     {% if pagination.pages > 1 %}
-    <div style="display: flex; justify-content: center; margin: 2rem 0; gap: 0.5rem;">
+    <div class="pagination">
         {% if pagination.has_prev %}
-            <a href="{{ url_for('main.view_all_entries', page=pagination.prev_num) }}"
-               style="padding: 0.5rem 1rem; border: 1px solid #dee2e6; text-decoration: none; border-radius: 4px;">
+            <a href="{{ url_for('main.view_all_entries', page=pagination.prev_num, date_filter=current_date_filter, tag=current_tag_filter) }}"
+               class="pagination-link">
                 ← Previous
             </a>
         {% endif %}
         
         {% for page_num in pagination.iter_pages() %}
             {% if page_num %}
-                <a href="{{ url_for('main.view_all_entries', page=page_num) }}"
-                   style="padding: 0.5rem 1rem; border: 1px solid #dee2e6; text-decoration: none; border-radius: 4px; 
-                          {% if page_num == pagination.page %}background: #007bff; color: white; border-color: #007bff;{% endif %}">
+                <a href="{{ url_for('main.view_all_entries', page=page_num, date_filter=current_date_filter, tag=current_tag_filter) }}"
+                   class="pagination-link {% if page_num == pagination.page %}pagination-current{% endif %}">
                     {{ page_num }}
                 </a>
             {% else %}
-                <span style="padding: 0.5rem 1rem;">...</span>
+                <span class="pagination-ellipsis">...</span>
             {% endif %}
         {% endfor %}
         
         {% if pagination.has_next %}
-            <a href="{{ url_for('main.view_all_entries', page=pagination.next_num) }}"
-               style="padding: 0.5rem 1rem; border: 1px solid #dee2e6; text-decoration: none; border-radius: 4px;">
+            <a href="{{ url_for('main.view_all_entries', page=pagination.next_num, date_filter=current_date_filter, tag=current_tag_filter) }}"
+               class="pagination-link">
                 Next →
             </a>
         {% endif %}

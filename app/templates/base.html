@@ -5,203 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mood Journal</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .flash-messages {
-            list-style: none;
-            padding: 10px;
-            margin: 10px 0;
-        }
-        .flash-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .flash-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            background-color: #f0f0f0;
-        }
-        nav div {
-            display: flex;
-            gap: 1rem;
-        }
-        .charts-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2rem;
-        /* margin: 1rem 0; */
-    }
-    
-    .chart-container {
-        flex: 1;
-        /* min-width: 300px; */
-        width: 100%;
-        margin: 1rem 0;
-        padding: 1.5rem;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .chart-container h3 {
-        margin-top: 0;
-        color: #333;
-    }
-
-    .trend-card {
-        padding: 1rem;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        background: white;
-        text-align: center;
-    }
-    
-    .trend-up {
-        color: #28a745 !important; /* Green for positive trends */
-    }
-    
-    .trend-down {
-        color: #dc3545 !important; /* Red for negative trends */
-    }
-    
-    .trend-card h4 {
-        margin: 0 0 0.5rem 0;
-        text-transform: capitalize;
-        color: #333;
-    }
-    
-    .trend-value {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin: 0.5rem 0;
-    }
-    
-    .trend-comparison {
-        font-size: 0.9rem;
-        color: #666;
-    }
-
-    .btn {
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 4px;
-        text-decoration: none;
-        display: inline-block;
-        cursor: pointer;
-    }
-    
-    .btn-primary {
-        background: #007bff;
-        color: white;
-    }
-    
-    .btn-primary:hover {
-        background: #0056b3;
-    }
-    
-    .btn-success {
-        background: #28a745;
-        color: white;
-    }
-    
-    .btn-success:hover {
-        background: #1e7e34;
-    }
-
-    select[multiple] {
-        min-height: 100px;
-    }
-    
-    .filter-section {
-        background: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 2rem;
-    }
-    
-    .filter-row {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        align-items: end;
-    }
-    
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .filter-group label {
-        margin-bottom: 0.5rem;
-        font-weight: bold;
-    }
-
-    .flash-messages {
-        overflow: hidden; /* Contain the sliding messages */
-    }
-    
-    .flash-messages li {
-        will-change: transform, opacity; /* Optimize animations */
-        transition: opacity 0.3s ease;
-        animation: slideIn 0.3s ease;
-    }
-    
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(-30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateY(-30px);
-        }
-    }
-    
-    .flash-messages li:hover {
-        opacity: 0.9;
-    }
-    </style>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../static/styles.css">
+      {% block styles %}{% endblock %}
 </head>
 <body>
-   <nav>
-        <h1>Mood Journal</h1>
-        <div>
-            <a href="{{ url_for('main.index') }}">Home</a>
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
-                <span>Hello, {{ current_user.username }}!</span>
-                <a href="{{ url_for('auth.logout') }}">Logout</a>
-            {% else %}
-                <a href="{{ url_for('auth.login') }}">Login</a>
-                <a href="{{ url_for('auth.register') }}">Register</a>
-            {% endif %}
+    <nav>
+        <div class="container nav-container">
+            <h1 class="nav-brand">Mood Journal</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('main.index') }}">Home</a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                    <span class="nav-greeting">Hello, {{ current_user.username }}!</span>
+                    <a href="{{ url_for('auth.logout') }}">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}">Login</a>
+                    <a href="{{ url_for('auth.register') }}">Register</a>
+                {% endif %}
+            </div>
         </div>
     </nav>
 
-    <main>
+    <main class="container">
         <!-- Flash messages display -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -216,29 +42,14 @@
         <!-- Other templates will insert their content here -->
         {% block content %}{% endblock %}
     </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Mood Journal. All rights reserved.</p>
+        </div>
+    </footer>
     <!-- Auto-dismiss flash messages with slide animations -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const flashMessages = document.querySelectorAll('.flash-messages li');
-    
-    flashMessages.forEach(message => {
-        // Add slide-in animation class
-        message.style.animation = 'slideIn 0.5s ease';
-        
-        // Set timeout to remove message after 5 seconds with slide-out
-        setTimeout(() => {
-            message.style.animation = 'slideOut 0.5s ease';
-            message.style.opacity = '0';
-            
-            // Remove after animation completes
-            setTimeout(() => {
-                if (message.parentNode) {
-                    message.parentNode.removeChild(message);
-                }
-            }, 500); // Match animation duration
-        }, 3000); // 5 seconds display time
-    });
-});
-</script>
+     <script src="../static/script.js"></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

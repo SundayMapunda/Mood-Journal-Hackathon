@@ -1,58 +1,330 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div style="max-width: 800px; margin: 0 auto;">
-    <h2>Edit Journal Entry</h2>
-    <p>From {{ entry.date_created.strftime('%Y-%m-%d %H:%M') }}</p>
+{% block styles %}
+<style>
+    .edit-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
     
-    <form method="POST" action="{{ url_for('main.edit_entry', entry_id=entry.id) }}">
-        <div style="margin-bottom: 1rem;">
-            <label for="content">Journal Content:</label>
-            <textarea id="content" name="content" rows="8" required 
-                      style="width: 100%; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #ccc; border-radius: 4px;">{{ entry.content }}</textarea>
+    /* Header */
+    .edit-header {
+        margin-bottom: 2rem;
+    }
+    
+    .edit-title {
+        color: var(--dark);
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+    }
+    
+    .edit-date {
+        color: #666;
+        font-size: 1rem;
+    }
+    
+    /* Form */
+    .edit-form {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--dark);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(109, 93, 202, 0.2);
+    }
+    
+    textarea.form-control {
+        min-height: 200px;
+        resize: vertical;
+        line-height: 1.6;
+    }
+    
+    /* Emotion Analysis */
+    .emotion-analysis {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .emotion-title {
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--dark);
+    }
+    
+    .emotion-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .emotion-item {
+        text-align: center;
+        padding: 0.8rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    
+    .emotion-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+    
+    .emotion-label {
+        font-size: 0.85rem;
+        color: #666;
+    }
+    
+    .joy { color: #28a745; }
+    .sadness { color: #007bff; }
+    .anger { color: #dc3545; }
+    .fear { color: #ffc107; }
+    .surprise { color: #6f42c1; }
+    
+    .emotion-note {
+        font-size: 0.9rem;
+        color: #666;
+        font-style: italic;
+    }
+    
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-update {
+        padding: 12px 24px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-update:hover {
+        background: #5c4dab;
+    }
+    
+    .btn-cancel {
+        padding: 12px 24px;
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .btn-cancel:hover {
+        background: #5a6268;
+    }
+    
+    /* Danger Zone */
+    .danger-zone {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        border-left: 4px solid var(--danger);
+    }
+    
+    .danger-title {
+        color: var(--danger);
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 0 0 1rem 0;
+    }
+    
+    .danger-text {
+        color: #666;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-delete {
+        padding: 12px 24px;
+        background: var(--danger);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-delete:hover {
+        background: #c82333;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn-update, .btn-cancel, .btn-delete {
+            width: 100%;
+            text-align: center;
+        }
+        
+        .emotion-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .emotion-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-container">
+    <!-- Header -->
+    <div class="edit-header">
+        <h2 class="edit-title">Edit Journal Entry</h2>
+        <p class="edit-date">From {{ entry.date_created.strftime('%B %d, %Y at %H:%M') }}</p>
+    </div>
+    
+    <!-- Edit Form -->
+    <form method="POST" action="{{ url_for('main.edit_entry', entry_id=entry.id) }}" class="edit-form">
+        <!-- Content Field -->
+        <div class="form-group">
+            <label for="content" class="form-label">Journal Content</label>
+            <textarea id="content" name="content" class="form-control" rows="8" required>{{ entry.content }}</textarea>
         </div>
         
-        <div style="margin-bottom: 1rem;">
-            <label for="tags">Tags (comma-separated):</label>
-            <input type="text" id="tags" name="tags" value="{{ tags_string }}"
-                   style="width: 100%; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #ccc; border-radius: 4px;">
+        <!-- Tags Field -->
+        <div class="form-group">
+            <label for="tags" class="form-label">Tags (comma-separated)</label>
+            <input type="text" id="tags" name="tags" value="{{ tags_string }}" class="form-control" 
+                   placeholder="e.g., work, family, health">
         </div>
         
+        <!-- Emotion Analysis -->
         {% if entry.emotion_score %}
-        <div style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-            <h4>Current Emotion Analysis:</h4>
-            <p>
-                Joy: {{ "%.1f"|format(entry.emotion_score.joy * 100) }}%,
-                Sadness: {{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%,
-                Anger: {{ "%.1f"|format(entry.emotion_score.anger * 100) }}%,
-                Fear: {{ "%.1f"|format(entry.emotion_score.fear * 100) }}%,
-                Surprise: {{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%
-            </p>
-            <p><em>Emotion analysis will be updated if you change the content significantly.</em></p>
+        <div class="emotion-analysis">
+            <h4 class="emotion-title">Current Emotion Analysis</h4>
+            <div class="emotion-grid">
+                <div class="emotion-item">
+                    <div class="emotion-value joy">{{ "%.1f"|format(entry.emotion_score.joy * 100) }}%</div>
+                    <div class="emotion-label">Joy</div>
+                </div>
+                <div class="emotion-item">
+                    <div class="emotion-value sadness">{{ "%.1f"|format(entry.emotion_score.sadness * 100) }}%</div>
+                    <div class="emotion-label">Sadness</div>
+                </div>
+                <div class="emotion-item">
+                    <div class="emotion-value anger">{{ "%.1f"|format(entry.emotion_score.anger * 100) }}%</div>
+                    <div class="emotion-label">Anger</div>
+                </div>
+                <div class="emotion-item">
+                    <div class="emotion-value fear">{{ "%.1f"|format(entry.emotion_score.fear * 100) }}%</div>
+                    <div class="emotion-label">Fear</div>
+                </div>
+                <div class="emotion-item">
+                    <div class="emotion-value surprise">{{ "%.1f"|format(entry.emotion_score.surprise * 100) }}%</div>
+                    <div class="emotion-label">Surprise</div>
+                </div>
+            </div>
+            <p class="emotion-note">Emotion analysis will be updated if you change the content significantly.</p>
         </div>
         {% endif %}
         
-        <div style="display: flex; gap: 1rem;">
-            <button type="submit" style="padding: 0.5rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 4px;">
-                Update Entry
-            </button>
-            <a href="{{ url_for('main.view_entry', entry_id=entry.id) }}" 
-               style="padding: 0.5rem 1.5rem; background: #6c757d; color: white; text-decoration: none; border-radius: 4px;">
-                Cancel
-            </a>
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <button type="submit" class="btn-update">Update Entry</button>
+            <a href="{{ url_for('main.view_entry', entry_id=entry.id) }}" class="btn-cancel">Cancel</a>
         </div>
     </form>
     
-    <hr style="margin: 2rem 0;">
-    
-    <div>
-        <h4>Danger Zone</h4>
+    <!-- Danger Zone -->
+    <div class="danger-zone">
+        <h3 class="danger-title">Danger Zone</h3>
+        <p class="danger-text">Once you delete an entry, there is no going back. Please be certain.</p>
         <form method="POST" action="{{ url_for('main.delete_entry', entry_id=entry.id) }}" 
-              onsubmit="return confirm('Are you sure you want to delete this entry? This action cannot be undone.');">
-            <button type="submit" style="padding: 0.5rem 1.5rem; background: #dc3545; color: white; border: none; border-radius: 4px;">
-                Delete Entry
-            </button>
+              onsubmit="return confirm('Are you absolutely sure you want to delete this entry? This action cannot be undone.');">
+            <button type="submit" class="btn-delete">Delete Entry Permanently</button>
         </form>
     </div>
 </div>
+
+<script>
+    // Add confirmation for navigation away if content has been modified
+    document.addEventListener('DOMContentLoaded', function() {
+        const textarea = document.getElementById('content');
+        const initialContent = textarea.value;
+        const tagsInput = document.getElementById('tags');
+        const initialTags = tagsInput.value;
+        
+        let isModified = false;
+        
+        function checkModification() {
+            const currentContent = textarea.value;
+            const currentTags = tagsInput.value;
+            
+            if (currentContent !== initialContent || currentTags !== initialTags) {
+                isModified = true;
+            } else {
+                isModified = false;
+            }
+        }
+        
+        textarea.addEventListener('input', checkModification);
+        tagsInput.addEventListener('input', checkModification);
+        
+        // Warn user if they try to leave the page with unsaved changes
+        window.addEventListener('beforeunload', function(e) {
+            if (isModified) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                return 'You have unsaved changes. Are you sure you want to leave?';
+            }
+        });
+        
+        // Clear the beforeunload event when form is submitted
+        document.querySelector('form').addEventListener('submit', function() {
+            isModified = false;
+        });
+    });
+</script>
 {% endblock %}
